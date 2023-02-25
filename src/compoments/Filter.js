@@ -15,7 +15,7 @@ const Filter = () => {
         <FormCheck inline label="Descending" name="group1" type="radio"/>
       </span>
       <span>
-        <FormCheck inline label="Include Out of Stock" name="group1" type="checkbox"/>
+        <FormCheck inline checked label="Include Out of Stock" name="group1" type="checkbox"/>
       </span>
       <span>
         <FormCheck inline label="Fast Delivery Only" name="group1" type="checkbox"/>

@@ -12,8 +12,8 @@ const Home = () => {
     <div className='wrapper'>
       <Filter />
     <ul className='product-list'>
-      {state.product.map((state)=>(
-        <Product product={state} dispatch={dispatch} key={state.id} />
+      {state.product.map((prod)=>(
+        <Product product={prod} dispatch={dispatch} cart={state.cart} key={state.id} />
       ))}
     </ul>
     </div>
