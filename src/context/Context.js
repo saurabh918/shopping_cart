@@ -1,9 +1,17 @@
-import { createContext, useContext, useReducer } from "react";
+import { createContext, useContext, useEffect, useReducer } from "react";
 import { reducer } from "./Reducer";
+
+
 
 export const CartContext = createContext()
 
 export const CartProvider = ({children}) => {
+let cartArray;
+  if(localStorage.getItem("cart")){
+  cartArray = localStorage.getItem("cart").split(",").map(e=>parseInt(e));
+} else {
+  cartArray = false;
+}
   const productData = [
     {
       id: 0,
@@ -69,8 +77,9 @@ export const CartProvider = ({children}) => {
 
   const [state,dispatch] = useReducer(reducer,{
     product: productData,
-    cart: []
+    cart: cartArray ? cartArray : []  
   })
+  console.log(state.cart)
   return(
     <CartContext.Provider value={{state,dispatch}}>
       {children}

@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'
-import { Container, FormControl, Navbar, NavbarBrand,Dropdown } from 'react-bootstrap'
+import { Container, FormControl, Navbar, NavbarBrand,Dropdown, Button } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { CartContext } from '../context/Context'
 import {AiFillDelete} from "react-icons/ai"
@@ -11,15 +11,15 @@ export const Header = () => {
   return (
     <div className='headerComponent'>
       <div className="wrapper">
-      <Navbar style={{height:80}}>
+      <Navbar>
         <Container>
           <Navbar.Brand>
-          <Link to="/">Shopping from Home</Link>
+          <Link to="/">Lets Buy Something!</Link>
           </Navbar.Brand>
           <Navbar.Text>
             <FormControl
-            placeholder='Add a product'
-            style={{width: '500px'}} className="m-auto"
+            placeholder='Search for a product'
+             className="m-auto"
             />
           </Navbar.Text>
           <Dropdown align-end="true" className="ml-auto">
@@ -30,12 +30,18 @@ export const Header = () => {
             <Dropdown.Menu variant='success' bg="success">
               {
                 state.cart.length ? (
-                  state.cart.map((cart) => {return (<div className='cartItem'>
-                    <img src={state.product[cart].image} />
-                    <span>{state.product[cart].name}</span>
-                    <AiFillDelete />
-                  </div>)} 
-                  )
+                    <>
+                      {state.cart.map((cart) => (
+                        <div className='cartItem' key={cart}>
+                          <img src={state.product[cart].image} />
+                          <span>{state.product[cart].name}</span>
+                          <AiFillDelete onClick={() => dispatch({type: "Remove from cart", payload: {id: cart}})} />
+                        </div>
+                      ))}
+                      <Link to="/cart">
+                        <Button>Go to cart</Button>
+                      </Link>
+                    </>
                 ):(
                   <Dropdown.Item eventKey="1">This cart is empty!</Dropdown.Item>
                 )

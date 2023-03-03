@@ -13,7 +13,7 @@ const Home = () => {
       <Filter />
     <ul className='product-list'>
       {state.product.map((prod)=>(
-        <Product product={prod} dispatch={dispatch} cart={state.cart} key={state.id} />
+        <Product product={prod} dispatch={dispatch} cart={state.cart} key={prod.id} />
       ))}
     </ul>
     </div>
