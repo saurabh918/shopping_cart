@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import {AiFillStar,AiOutlineStar} from "react-icons/ai"
+import { CartContext } from '../context/Context';
 
-const Rating = ({rating,onClick,style}) => {
+const Rating = ({onClick,style}) => {
+  const { filterState:{rating} } = useContext(CartContext);
+  console.log(rating)
   return (
     [...Array(5)].map((_,i)=>(
        <span onClick={()=>onClick(i)} style={style} key={i}>

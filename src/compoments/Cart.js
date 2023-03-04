@@ -6,7 +6,7 @@ import Product from './Product'
 const Cart = () => {
   const {state,dispatch} = useContext(CartContext)
   const addedProducts = state.cart.map(cart => state.product[cart])
-  const amount = addedProducts.reduce((acc,number)=>parseInt(acc+number.price),0)
+  const amount = addedProducts.reduce((acc,number)=>parseInt(acc+(number.price * number.qty)),0)
   // console.log(amount)
   console.log(addedProducts)
   return (

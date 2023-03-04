@@ -5,14 +5,35 @@ import Product from './Product';
 
 
 const Home = () => {
-  const {state,dispatch} = useContext(CartContext);
+  const {state,filterState:{ byStock,byFastDelivery,rating,searchStr,sort },dispatch} = useContext(CartContext);
   console.log(state)
+
+  const filterProducts = ()=>{
+    let filteredProducts = state.product;
+
+    if(sort) {
+      filteredProducts = filteredProducts.sort((a,b)=>sort === "lowToHigh" ? a.price - b.price : b.price - a.price)
+    }
+    if(!byStock) {
+      filteredProducts = filteredProducts.filter((prod) => prod.inStock)
+    }
+    if(byFastDelivery) {
+      filteredProducts = filteredProducts.filter((prod) => prod.fastDelivery)
+    }
+    if(rating) {
+      filteredProducts = filteredProducts.filter((prod)=>prod.ratings >= rating)
+    }
+    if(searchStr) {
+      filteredProducts = filteredProducts.filter((prod) => prod.name.toLowerCase().includes(searchStr))
+    }
+    return filteredProducts;
+  }
   return (
     <div className='home-page'>
     <div className='wrapper'>
       <Filter />
     <ul className='product-list'>
-      {state.product.map((prod)=>(
+      {filterProducts().map((prod)=>(
         <Product product={prod} dispatch={dispatch} cart={state.cart} key={prod.id} />
       ))}
     </ul>

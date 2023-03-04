@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { useContext, useEffect } from 'react'
 import { Container, FormControl, Navbar, NavbarBrand,Dropdown, Button } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { CartContext } from '../context/Context'
@@ -6,8 +6,7 @@ import {AiFillDelete} from "react-icons/ai"
 
 
 export const Header = () => {
-  const {state,dispatch} = useContext(CartContext);
-  console.log(state)
+  const {state,dispatch,filterDispatch} = useContext(CartContext);
   return (
     <div className='headerComponent'>
       <div className="wrapper">
@@ -19,7 +18,7 @@ export const Header = () => {
           <Navbar.Text>
             <FormControl
             placeholder='Search for a product'
-             className="m-auto"
+             className="m-auto" onChange={(e)=>filterDispatch({ type:"filterBySearch",payload:e.target.value})}
             />
           </Navbar.Text>
           <Dropdown align-end="true" className="ml-auto">

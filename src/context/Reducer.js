@@ -4,6 +4,32 @@ export const reducer = (state,action)=>{
       return removeProduct(state,action)
     case "Add to cart":
       return addProduct(state,action)
+    case "quantityUpdated":
+      return addQuantity(state,action)
+    default:
+      return state;
+  }
+}
+
+export const filterReducer = (state,action) => {
+  switch(action.type) {
+    case "sortByPrice":
+      return { ...state,sort: action.payload }
+    case "filterByStock":
+      return { ...state,byStock: !state.byStock }
+    case "filterByFastDelivery":
+      return { ...state,byFastDelivery: !state.byFastDelivery }
+    case "filterByRating":
+      return { ...state,rating: action.payload }
+    case "filterBySearch":
+      return { ...state,searchStr: action.payload }
+    case "clearFilter":
+      return {
+        byStock: false,
+        byFastDelivery: false,
+        rating: 0,
+        searchStr: ""
+      }
     default:
       return state;
   }
@@ -20,5 +46,12 @@ const removeProduct = (state,action)=> {
     window.localStorage.setItem("cart",[...state.cart]);
     console.log(localStorage.getItem("cart"))
   return state
+}
+
+const addQuantity = (state,action)=> {
+  console.log(state)
+  return { ...state,product: state.product.filter((p)=>(
+    p.id === action.payload.id ? (p.qty = action.payload.qty) : (p.qty = p.qty)
+  ))}
 }
 

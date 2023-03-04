@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useReducer } from "react";
-import { reducer } from "./Reducer";
+import { filterReducer, reducer } from "./Reducer";
 
 
 
@@ -22,6 +22,7 @@ let cartArray;
       fastDelivery: true,
       deliveryDays: 1,
       ratings: 4,
+      qty: 1
     },
     {
       id: 1,
@@ -32,6 +33,7 @@ let cartArray;
       fastDelivery: false,
       deliveryDays: 5,
       ratings: 2,
+      qty: 1
     },
     {
       id: 2,
@@ -42,6 +44,7 @@ let cartArray;
       fastDelivery: true,
       deliveryDays: 2,
       ratings: 2,
+      qty: 1
     },
     {
       id: 3,
@@ -52,6 +55,7 @@ let cartArray;
       fastDelivery: false,
       deliveryDays: 6,
       ratings: 4,
+      qty: 1
     },
     {
       id: 4,
@@ -62,6 +66,7 @@ let cartArray;
       fastDelivery: false,
       deliveryDays: 7,
       ratings: 3,
+      qty: 1
     },
     {
       id: 5,
@@ -72,6 +77,7 @@ let cartArray;
       fastDelivery: true,
       deliveryDays: 2,
       ratings: 3,
+      qty: 1
     }
   ];
 
@@ -79,9 +85,16 @@ let cartArray;
     product: productData,
     cart: cartArray ? cartArray : []  
   })
-  console.log(state.cart)
+
+  const [filterState,filterDispatch] = useReducer(filterReducer,{
+    byStock: false,
+    byFastDelivery: false,
+    rating: 0,
+    searchStr: ""
+  })
+
   return(
-    <CartContext.Provider value={{state,dispatch}}>
+    <CartContext.Provider value={{state,dispatch,filterState,filterDispatch}}>
       {children}
     </CartContext.Provider>
   )
