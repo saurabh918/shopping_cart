@@ -23,7 +23,7 @@ const Filter = () => {
         <FormCheck inline label="Fast Delivery Only" name="group1" type="checkbox" onChange={()=>filterDispatch({type:"filterByFastDelivery"})} checked={byFastDelivery} />
       </span>
       <span className='star-ratings'>
-        <Rating onClick={(i)=>{ filterDispatch({type:"filterByRating",payload: i+1 })}} style={{ cursor:"pointer" }}/>
+        <Rating rating={rating} onClick={(i)=>{ filterDispatch({type:"filterByRating",payload: i+1 })}} style={{ cursor:"pointer" }}/>
       </span>
       <Button onClick={()=>filterDispatch({type:"clearFilter"})}>
         Clear Filters
