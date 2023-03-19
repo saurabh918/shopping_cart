@@ -1,11 +1,11 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import { Form } from 'react-bootstrap'
 import Rating from './Rating'
 
 const Product = ({product,dispatch,cart}) => {
   return (
     <li>
-      <img src={product.image} />
+      <img src={product.image} alt="Product view" />
       <p className='product-title'>{product.name}</p>
       <p>{product.price}$</p>
       <p>{product.deliveryDays} days delivery</p>

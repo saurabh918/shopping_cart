@@ -1,5 +1,5 @@
-import React, { useContext, useEffect } from 'react'
-import { Container, FormControl, Navbar, NavbarBrand,Dropdown, Button } from 'react-bootstrap'
+import React, { useContext } from 'react'
+import { Container, FormControl, Navbar,Dropdown, Button } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { CartContext } from '../context/Context'
 import {AiFillDelete} from "react-icons/ai"
@@ -32,7 +32,7 @@ export const Header = () => {
                     <>
                       {state.cart.map((cart) => (
                         <div className='cartItem' key={cart}>
-                          <img src={state.product[cart].image} />
+                          <img src={state.product[cart].image} alt="My cart" />
                           <span>{state.product[cart].name}</span>
                           <AiFillDelete onClick={() => dispatch({type: "Remove from cart", payload: {id: cart}})} />
                         </div>

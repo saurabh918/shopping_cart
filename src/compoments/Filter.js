@@ -1,6 +1,5 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext } from 'react'
 import { Button, FormCheck } from 'react-bootstrap'
-import { Form } from 'react-router-dom'
 import { CartContext } from '../context/Context'
 import Rating from './Rating'
 
