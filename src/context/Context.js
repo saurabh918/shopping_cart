@@ -1,12 +1,10 @@
 import { createContext, useContext, useEffect, useReducer } from "react";
 import { filterReducer, reducer } from "./Reducer";
 
-
-
 export const CartContext = createContext()
 
 export const CartProvider = ({children}) => {
-let cartArray;
+  let cartArray;
   if(localStorage.getItem("cart")){
   cartArray = localStorage.getItem("cart").split(",").map(e=>parseInt(e));
 } else {
