@@ -6,13 +6,12 @@ import Product from './Product';
 
 const Home = () => {
   const {state,filterState:{ byStock,byFastDelivery,rating,searchStr,sort },dispatch} = useContext(CartContext);
-  console.log(state)
 
   const filterProducts = ()=>{
     let filteredProducts = state.product;
 
     if(sort) {
-      filteredProducts = filteredProducts.sort((a,b)=>sort === "lowToHigh" ? a.price - b.price : b.price - a.price)
+      filteredProducts = filteredProducts.sort((a,b)=>sort === "lowToHigh" ? a.price - b.price : sort === "lowToHigh" ? b.price - a.price : 0)
     }
     if(!byStock) {
       filteredProducts = filteredProducts.filter((prod) => prod.inStock)

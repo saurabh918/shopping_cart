@@ -44,12 +44,10 @@ const addProduct = (state,action)=> {
 const removeProduct = (state,action)=> {
   state = {...state,cart:[...state.cart.filter(cart=> cart !== action.payload.id)]}
     window.localStorage.setItem("cart",[...state.cart]);
-    console.log(localStorage.getItem("cart"))
   return state
 }
 
 const addQuantity = (state,action)=> {
-  console.log(state)
   return { ...state,product: state.product.filter((p)=>(
     // eslint-disable-next-line
     p.id === action.payload.id ? (p.qty = action.payload.qty) : (p.qty = p.qty)

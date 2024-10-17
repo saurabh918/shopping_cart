@@ -1,4 +1,4 @@
-body,#root {
+/* body,#root {
   background: url(../assets/images/background.jpg);
   background-size: cover;
   background-repeat: no-repeat;
@@ -34,7 +34,7 @@ img {
 
 li {
   list-style: none;
-}
+} */
 
 .dropdown-menu {
   background-color: #000!important;

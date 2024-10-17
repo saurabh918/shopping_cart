@@ -1,6 +1,6 @@
 import React, { useContext } from 'react'
 import { CartContext } from '../context/Context'
-import Amount from './Amount'
+import Amount from './amount/Amount'
 import Product from './Product'
 
 const Cart = () => {
@@ -10,9 +10,7 @@ const Cart = () => {
     const totalProductPrice = number.price * number.qty
     return parseInt(accumulator + totalProductPrice)
   }, 0)
-      
-    // console.log(amount)
-  console.log(addedProducts)
+  
   return (
     <div className='cart-products'>
       <div className="wrapper">

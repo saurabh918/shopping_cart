@@ -4,8 +4,7 @@ import { CartContext } from '../context/Context'
 import Rating from './Rating'
 
 const Filter = () => {
-  const { filterState:{sort,byStock,byFastDelivery,rating,searchStr},filterDispatch } = useContext(CartContext)
-  console.log(sort,byStock,byFastDelivery,rating,searchStr)
+  const { filterState:{byStock,byFastDelivery,rating},filterDispatch } = useContext(CartContext)
   return (
     <div className='filter-options'>
       <span className="title">Filter Products</span>
