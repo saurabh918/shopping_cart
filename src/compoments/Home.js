@@ -11,7 +11,7 @@ const Home = () => {
     let filteredProducts = state.product;
 
     if(sort) {
-      filteredProducts = filteredProducts.sort((a,b)=>sort === "lowToHigh" ? a.price - b.price : sort === "lowToHigh" ? b.price - a.price : 0)
+      filteredProducts = filteredProducts.sort((a,b)=>sort === "lowToHigh" ? a.price - b.price : sort === "HighToLow" ? b.price - a.price : 0)
     }
     if(!byStock) {
       filteredProducts = filteredProducts.filter((prod) => prod.inStock)
