@@ -1,7 +1,7 @@
 import React, { useContext } from 'react'
 import { CartContext } from '../context/Context'
-import Amount from './amount/Amount'
-import Product from './Product'
+import Amount from '../compoments/amount/Amount'
+import Product from '../compoments/Product'
 
 const Cart = () => {
   const {state,dispatch} = useContext(CartContext)
