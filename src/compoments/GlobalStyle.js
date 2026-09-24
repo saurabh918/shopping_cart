@@ -1,44 +1,38 @@
-import backgroundImg from "../assets/images/background.jpg"
 const { createGlobalStyle } = require("styled-components");
 
-export const GlobalStyle =createGlobalStyle`
+export const GlobalStyle = createGlobalStyle`
 
-body,#root {
-  background-image: url(${backgroundImg});
-  background-size: cover;
-  background-repeat: no-repeat;
-  backdrop-filter: blur(5px);
-}
-
-#root {
+body, #root {
+  background-color: var(--color-bg);
   min-height: 100vh;
 }
 
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
 body {
-  padding-bottom: 50px;
+  padding-bottom: var(--space-2xl);
+  overflow-x: clip;
 }
 
 .wrapper {
-  width: 90%;
-  margin: auto;
+  width: min(1120px, 92%);
+  margin-inline: auto;
 }
 
 a {
-  text-decoration: none!important;
-  color: #fff!important;
-}
-
-img {
-  width: 200px;
-  height: 200px;
-}
-
-.navbar-text.hidden {
-  display: none;
+  text-decoration: none;
+  color: inherit;
 }
 
 li {
   list-style: none;
+}
+
+.navbar-text.hidden {
+  display: none;
 }
 
 `

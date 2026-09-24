@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "description": "Factual product catalog and retrieval-ready knowledge records for the shopping cart app.",
+  "products": [
+    {
+      "id": 0,
+      "name": "iPhone 6S",
+      "price": 799,
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRS9VIXa2K5XYfjf4fjCc92rtzpX_1SizMkhw&s",
+      "inStock": 3,
+      "fastDelivery": true,
+      "deliveryDays": 1,
+      "ratings": 4,
+      "stockStatus": "in_stock",
+      "blurb": "iPhone 6S is listed at $799. There are 3 units in stock. The rating is 4 out of 5. Estimated delivery is 1 day. Fast delivery is available for this item.",
+      "searchText": "iphone 6s 799 price 3 in stock rating 4 out of 5 delivery 1 day fast delivery available"
+    },
+    {
+      "id": 1,
+      "name": "iPhone 5S",
+      "price": 349,
+      "image": "https://img-new.cgtrader.com/items/901737/4a15f1e3c4/large/iphone-5s-3d-model-stl-sldprt-sldasm-slddrw-ige-igs-iges-stp.jpg",
+      "inStock": 5,
+      "fastDelivery": false,
+      "deliveryDays": 5,
+      "ratings": 2,
+      "stockStatus": "in_stock",
+      "blurb": "iPhone 5S is listed at $349. There are 5 units in stock. The rating is 2 out of 5. Estimated delivery is 5 days. Fast delivery is not available for this item.",
+      "searchText": "iphone 5s 349 price 5 in stock rating 2 out of 5 delivery 5 days fast delivery not available"
+    },
+    {
+      "id": 2,
+      "name": "Macbook",
+      "price": 1499,
+      "image": "https://www.notebookcheck.net/fileadmin/Notebooks/News/_nc3/photo_1517336714731_489689fd1ca8_9.jpeg",
+      "inStock": 2,
+      "fastDelivery": true,
+      "deliveryDays": 2,
+      "ratings": 2,
+      "stockStatus": "in_stock",
+      "blurb": "Macbook is listed at $1499. There are 2 units in stock. The rating is 2 out of 5. Estimated delivery is 2 days. Fast delivery is available for this item.",
+      "searchText": "macbook 1499 price 2 in stock rating 2 out of 5 delivery 2 days fast delivery available"
+    },
+    {
+      "id": 3,
+      "name": "Macbook Air",
+      "price": 999,
+      "image": "https://akm-img-a-in.tosshub.com/indiatoday/images/story/202207/MacBook_Air_M2_main.jpg?VersionId=9zEFIS24JT0DHsK8QeyI31iZLFfru048&size=690:388",
+      "inStock": 7,
+      "fastDelivery": false,
+      "deliveryDays": 6,
+      "ratings": 4,
+      "stockStatus": "in_stock",
+      "blurb": "Macbook Air is listed at $999. There are 7 units in stock. The rating is 4 out of 5. Estimated delivery is 6 days. Fast delivery is not available for this item.",
+      "searchText": "macbook air 999 price 7 in stock rating 4 out of 5 delivery 6 days fast delivery not available"
+    },
+    {
+      "id": 4,
+      "name": "Macbook Air 2017",
+      "price": 599,
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT28uAIIFumtx75qIiZN5IujwacEbv-sc0DVg&s",
+      "inStock": 0,
+      "fastDelivery": false,
+      "deliveryDays": 7,
+      "ratings": 3,
+      "stockStatus": "out_of_stock",
+      "blurb": "Macbook Air 2017 is listed at $599. There are 0 units in stock (out of stock). The rating is 3 out of 5. Estimated delivery is 7 days. Fast delivery is not available for this item.",
+      "searchText": "macbook air 2017 599 price out of stock 0 units rating 3 out of 5 delivery 7 days fast delivery not available"
+    },
+    {
+      "id": 5,
+      "name": "Macbook Air 2022",
+      "price": 499,
+      "image": "https://telecomtalk.info/wp-content/uploads/2021/10/macbook-air-2022-might-not-be-much.jpeg",
+      "inStock": 0,
+      "fastDelivery": true,
+      "deliveryDays": 2,
+      "ratings": 3,
+      "stockStatus": "out_of_stock",
+      "blurb": "Macbook Air 2022 is listed at $499. There are 0 units in stock (out of stock). The rating is 3 out of 5. Estimated delivery is 2 days. Fast delivery is marked as available in the catalog, but the item is out of stock.",
+      "searchText": "macbook air 2022 499 price out of stock 0 units rating 3 out of 5 delivery 2 days fast delivery available"
+    }
+  ]
+}

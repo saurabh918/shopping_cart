@@ -4,29 +4,60 @@ import { CartContext } from '../context/Context'
 import Rating from './Rating'
 
 const Filter = () => {
-  const { filterState:{byStock,byFastDelivery,rating},filterDispatch } = useContext(CartContext)
+  const { filterState: { byStock, byFastDelivery, rating }, filterDispatch } = useContext(CartContext)
   return (
-    <div className='filter-options'>
-      <span className="title">Filter Products</span>
-      <span>
-        <FormCheck inline label="Ascending" name="group1" type="radio" onChange={()=>filterDispatch({type:"sortByPrice",payload:"lowToHigh"})} />
-      </span>
-      <span>
-        <FormCheck inline label="Descending" name="group1" type="radio" onChange={()=>filterDispatch({type:"sortByPrice",payload:"HighToLow"})} />
-      </span>
-      <span>
-        <FormCheck inline label="Include Out of Stock" name="group1" type="checkbox" onChange={()=>filterDispatch({type:"filterByStock"})} checked={byStock} />
-      </span>
-      <span>
-        <FormCheck inline label="Fast Delivery Only" name="group1" type="checkbox" onChange={()=>filterDispatch({type:"filterByFastDelivery"})} checked={byFastDelivery} />
-      </span>
-      <span className='star-ratings'>
-        <Rating rating={rating} onClick={(i)=>{ filterDispatch({type:"filterByRating",payload: i+1 })}} style={{ cursor:"pointer" }}/>
-      </span>
-      <Button onClick={()=>filterDispatch({type:"clearFilter"})}>
-        Clear Filters
+    <aside className='filter-options' aria-label="Product filters">
+      <h2 className="title">Filters</h2>
+
+      <fieldset className="filter-group">
+        <legend className="filter-group-label">Sort by price</legend>
+        <FormCheck
+          label="Low to high"
+          name="sortPrice"
+          type="radio"
+          id="sort-low-high"
+          onChange={() => filterDispatch({ type: "sortByPrice", payload: "lowToHigh" })}
+        />
+        <FormCheck
+          label="High to low"
+          name="sortPrice"
+          type="radio"
+          id="sort-high-low"
+          onChange={() => filterDispatch({ type: "sortByPrice", payload: "HighToLow" })}
+        />
+      </fieldset>
+
+      <fieldset className="filter-group">
+        <legend className="filter-group-label">Availability</legend>
+        <FormCheck
+          label="Include out of stock"
+          name="stockFilter"
+          type="checkbox"
+          id="filter-stock"
+          onChange={() => filterDispatch({ type: "filterByStock" })}
+          checked={byStock}
+        />
+        <FormCheck
+          label="Fast delivery only"
+          name="deliveryFilter"
+          type="checkbox"
+          id="filter-delivery"
+          onChange={() => filterDispatch({ type: "filterByFastDelivery" })}
+          checked={byFastDelivery}
+        />
+      </fieldset>
+
+      <fieldset className="filter-group">
+        <legend className="filter-group-label">Minimum rating</legend>
+        <div className='star-ratings' role="group" aria-label="Minimum rating">
+          <Rating rating={rating} onClick={(i) => { filterDispatch({ type: "filterByRating", payload: i + 1 }) }} style={{ cursor: "pointer" }} />
+        </div>
+      </fieldset>
+
+      <Button type="button" className="filter-clear-btn" variant="outline-secondary" onClick={() => filterDispatch({ type: "clearFilter" })}>
+        Clear filters
       </Button>
-    </div>
+    </aside>
   )
 }
 
