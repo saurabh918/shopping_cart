@@ -110,28 +110,31 @@ describe("retrieveProducts (keyword-based, not vector search)", () => {
       const prices = matchPrices(result);
       expect(prices.length).toBeGreaterThan(0);
       expect(prices.every((p) => p < 500)).toBe(true);
-      expect(matchIds(result)).toEqual(expect.arrayContaining([1, 5]));
-      expect(prices).not.toContain(599);
-      expect(prices).not.toContain(799);
+      const seedMatches = retrieveProducts("Show me products under 500", { limit: 500 }).matches;
+      const seedIds = seedMatches.map((m) => m.product.id);
+      expect(seedIds).toEqual(expect.arrayContaining([1, 5]));
+      expect(seedIds).not.toContain(0);
     });
 
     it("returns products below $500", () => {
       const result = retrieveProducts("Products below $500", { limit: 10 });
       expect(matchPrices(result).every((p) => p < 500)).toBe(true);
-      expect(matchIds(result)).toEqual(expect.arrayContaining([1, 5]));
     });
 
     it("returns products less than 500", () => {
       const result = retrieveProducts("Products less than 500", { limit: 10 });
       expect(matchPrices(result).every((p) => p < 500)).toBe(true);
-      expect(matchIds(result)).toEqual(expect.arrayContaining([1, 5]));
     });
 
     it("returns products over 1000 with strict greater-than comparison", () => {
       const result = retrieveProducts("Products over 1000", { limit: 10 });
       const prices = matchPrices(result);
-      expect(prices).toEqual([1499]);
-      expect(matchIds(result)).toEqual([2]);
+      expect(prices.length).toBeGreaterThan(0);
+      expect(prices.every((p) => p > 1000)).toBe(true);
+      const seedMatch = retrieveProducts("Products over 1000", { limit: 500 }).matches.find(
+        (m) => m.product.id === 2,
+      );
+      expect(seedMatch?.product.price).toBe(1499);
     });
 
     it("returns no matches for under 100 when catalog has none", () => {
@@ -148,20 +151,27 @@ describe("retrieveProducts (keyword-based, not vector search)", () => {
     it("returns only laptops under 500 (no mobile leakage)", () => {
       const result = retrieveProducts("Show me laptops under 500", { limit: 10 });
       const prices = matchPrices(result);
+      expect(prices.length).toBeGreaterThan(0);
       expect(prices.every((p) => p < 500)).toBe(true);
-      expect(matchIds(result)).toEqual([5]);
-      expect(result.matches.every((m) => m.product.name.toLowerCase().includes("macbook"))).toBe(
-        true,
-      );
+      expect(result.matches.some((m) => m.product.id > 5)).toBe(true);
+      expect(
+        result.matches.every((m) => {
+          const name = m.product.name.toLowerCase();
+          return name.includes("macbook") || name.includes("laptop") || name.includes("notebook");
+        }),
+      ).toBe(true);
     });
   });
 
   describe("structured category and rating filters", () => {
-    it("returns Macbook products for laptop queries", () => {
+    it("returns laptop-category products for laptop queries", () => {
       const result = retrieveProducts("Show me laptops", { limit: 10 });
       expect(result.matches.length).toBeGreaterThan(0);
       expect(
-        result.matches.every((m) => m.product.name.toLowerCase().includes("macbook")),
+        result.matches.every((m) => {
+          const name = m.product.name.toLowerCase();
+          return name.includes("macbook") || name.includes("laptop") || name.includes("notebook");
+        }),
       ).toBe(true);
       expect(result.matches.some((m) => m.product.name.toLowerCase().includes("iphone"))).toBe(
         false,
@@ -172,12 +182,13 @@ describe("retrieveProducts (keyword-based, not vector search)", () => {
       const result = retrieveProducts("Show me mobile products", { limit: 10 });
       const ids = matchIds(result);
       expect(ids).toEqual(expect.arrayContaining([0, 1]));
-      expect(ids.every((id) => id === 0 || id === 1)).toBe(true);
+      expect(ids.some((id) => id > 5)).toBe(true);
     });
 
     it("enforces ratings > 4 for rated above 4", () => {
       const result = retrieveProducts("Show me products rated above 4", { limit: 10 });
-      expect(result.matches).toEqual([]);
+      expect(result.matches.length).toBeGreaterThan(0);
+      expect(result.matches.every((m) => m.product.ratings > 4)).toBe(true);
     });
 
     it("keeps keyword ranking for high rating without numeric filter", () => {

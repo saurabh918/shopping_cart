@@ -190,9 +190,17 @@ describe("staging retrieval (structured filters + staging KB)", () => {
 });
 
 describe("browser vs server catalog size (documentation)", () => {
-  it("server production catalog remains 6 products", () => {
+  it("server production catalog matches 1,000-product canonical catalog", () => {
     const { getProductKnowledgeBase } = require("../../netlify/lib/catalog.cjs");
-    expect(getProductKnowledgeBase({ ASSISTANT_CATALOG_MODE: "production" }).length).toBe(6);
+    expect(getProductKnowledgeBase({ ASSISTANT_CATALOG_MODE: "production" }).length).toBe(1000);
+  });
+
+  it("browser production catalog matches server production count", () => {
+    jest.resetModules();
+    const { getProductKnowledgeBase: browserKb } = require("../data/productCatalog");
+    const { getProductKnowledgeBase: serverKb } = require("../../netlify/lib/catalog.cjs");
+    expect(browserKb().length).toBe(1000);
+    expect(serverKb({ ASSISTANT_CATALOG_MODE: "production" }).length).toBe(1000);
   });
 
   it("browser staging KB helper exposes 1000 products", () => {

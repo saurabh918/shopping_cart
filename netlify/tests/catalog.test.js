@@ -64,11 +64,11 @@ function run() {
     console.log(`OK ${name}`);
   };
 
-  check("default mode is production with 6 products", () => {
+  check("default mode is production with 1,000 products", () => {
     withEnv({ ASSISTANT_CATALOG_MODE: undefined }, () => {
       assert.strictEqual(getCatalogMode(), "production");
       const records = getProductKnowledgeBase();
-      assert.strictEqual(records.length, 6);
+      assert.strictEqual(records.length, 1000);
       assertKbShape(records);
     });
   });
@@ -77,7 +77,7 @@ function run() {
     withEnv({ ASSISTANT_CATALOG_MODE: "production" }, () => {
       const meta = getCatalogMetadata();
       assert.strictEqual(meta.mode, "production");
-      assert.strictEqual(meta.productCount, 6);
+      assert.strictEqual(meta.productCount, 1000);
       assert.strictEqual(meta.source, "products.json");
     });
   });
@@ -112,12 +112,12 @@ function run() {
         const backup = `${STAGING_PATH}.catalog-test-bak`;
         fs.renameSync(STAGING_PATH, backup);
         try {
-          assert.strictEqual(getProductKnowledgeBase().length, 6);
+          assert.strictEqual(getProductKnowledgeBase().length, 1000);
         } finally {
           fs.renameSync(backup, STAGING_PATH);
         }
       } else {
-        assert.strictEqual(getProductKnowledgeBase().length, 6);
+        assert.strictEqual(getProductKnowledgeBase().length, 1000);
       }
     });
   });

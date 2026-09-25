@@ -144,16 +144,28 @@ async function run() {
     const result = retrieveProductsServer("Show me products under 500", { limit: 10 });
     assert.ok(result.matches.length > 0);
     assert.ok(result.matches.every((m) => m.product.price < 500));
-    const ids = result.matches.map((m) => m.product.id);
-    assert.ok(ids.includes(1));
-    assert.ok(ids.includes(5));
-    assert.ok(!ids.includes(0));
+    const seedResult = retrieveProductsServer("Show me products under 500", { limit: 500 });
+    const seedIds = seedResult.matches.map((m) => m.product.id);
+    assert.ok(seedIds.includes(1));
+    assert.ok(seedIds.includes(5));
+    assert.ok(!seedIds.includes(0));
   });
 
   await check("price filter over 1000 server retrieval", async () => {
     const result = retrieveProductsServer("Products over 1000", { limit: 10 });
-    assert.strictEqual(result.matches.length, 1);
-    assert.strictEqual(result.matches[0].product.price, 1499);
+    assert.ok(result.matches.length > 0);
+    assert.ok(result.matches.every((m) => m.product.price > 1000));
+    const seedResult = retrieveProductsServer("Products over 1000", { limit: 500 });
+    const macbook = seedResult.matches.find((m) => m.product.id === 2);
+    assert.ok(macbook);
+    assert.strictEqual(macbook.product.price, 1499);
+  });
+
+  await check("laptops under 500 server retrieval", async () => {
+    const result = retrieveProductsServer("Show me laptops under 500", { limit: 10 });
+    assert.ok(result.matches.length > 0);
+    assert.ok(result.matches.every((m) => m.product.price < 500));
+    assert.ok(result.matches.some((m) => m.product.id > 5));
   });
 
   await check("price filter under 500 via ask handler", async () => {
@@ -252,8 +264,11 @@ async function run() {
       catalogMode: "staging",
     });
     assert.strictEqual(res.statusCode, 200);
-    const ids = res.body.matches.map((m) => m.product.id);
-    assert.deepStrictEqual(ids, [5]);
+    assert.ok(res.body.matches.length > 0);
+    assert.ok(res.body.matches.every((m) => m.product.price < 500));
+    assert.ok(res.body.matches.some((m) => m.product.id > 5));
+    const allMatches = retrieveProductsServer("Show me laptops under 500", { limit: 500 });
+    assert.ok(allMatches.matches.some((m) => m.product.id === 5));
   });
 
   await check("request body catalogMode production cannot override staging env", async () => {
