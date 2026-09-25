@@ -19,10 +19,23 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "sync:catalog": "node scripts/sync-catalog.js",
+    "sync:catalog:staging": "node scripts/sync-catalog-staging.js",
+    "prebuild": "npm run sync:catalog",
+    "start": "craco start",
+    "start:staging": "node scripts/start-staging.js",
+    "build": "craco build",
+    "build:staging-ui": "cross-env REACT_APP_USE_STAGING_CATALOG=true craco build",
+    "test": "craco test",
     "demo:retrieval": "react-scripts test --watchAll=false --testPathPattern=retrieveProducts.test.js",
+    "test:retrieval:staging": "react-scripts test --watchAll=false --testPathPattern=retrieveProducts.staging.test.js",
+    "test:ask-api": "npm run sync:catalog && node netlify/tests/catalog.test.js && node netlify/tests/prompt.test.js && node netlify/tests/llm.diagnostics.test.js && node netlify/tests/mentionsOnlyRetrievedProducts.test.js && node netlify/tests/ask.handler.test.js",
+    "test:ask-api:staging": "npm run sync:catalog:staging && node netlify/tests/ask.handler.staging.test.js",
+    "test:assistant": "react-scripts test --watchAll=false --testPathPattern=ShoppingAssistant.test.js",
+    "generate:catalog": "node scripts/generate-catalog.js",
+    "validate:catalog": "node scripts/validate-catalog.js",
+    "validate:staging-quality": "node scripts/validate-staging-quality.js",
+    "test:generate-catalog": "node scripts/generate-catalog.test.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -42,5 +55,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "cross-env": "^10.1.0"
   }
 }

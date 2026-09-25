@@ -1,4 +1,12 @@
-import { normalizeQuery, retrieveProducts } from "./retrieveProducts";
+import { normalizeQuery, parsePriceFilter, retrieveProducts } from "./retrieveProducts";
+
+function matchPrices(result) {
+  return result.matches.map((m) => m.product.price);
+}
+
+function matchIds(result) {
+  return result.matches.map((m) => m.product.id);
+}
 
 describe("normalizeQuery", () => {
   it("handles empty and invalid input", () => {
@@ -53,10 +61,130 @@ describe("retrieveProducts (keyword-based, not vector search)", () => {
     expect(result.matches[0].product.price).toBe(799);
   });
 
+  it("returns iPhone products for a product-line query", () => {
+    const result = retrieveProducts("Show me iPhone products", { limit: 10 });
+    const ids = result.matches.map((m) => m.product.id);
+    expect(ids).toEqual(expect.arrayContaining([0, 1]));
+    expect(ids).not.toContain(2);
+    expect(ids).not.toContain(3);
+    expect(result.matches.every((m) => m.product.name.toLowerCase().includes("iphone"))).toBe(true);
+  });
+
   it("does not invent camera information", () => {
     const result = retrieveProducts("Which product has the best camera?");
     expect(result.matches).toEqual([]);
     expect(result.unsupportedTerms).toContain("camera");
     expect(result.message.toLowerCase()).toMatch(/does not contain/);
+  });
+
+  describe("price filter queries", () => {
+    it("parses supported under/below/less-than patterns", () => {
+      expect(parsePriceFilter("show me products under 500")).toEqual({
+        operator: "lt",
+        threshold: 500,
+      });
+      expect(parsePriceFilter("products below $500")).toEqual({
+        operator: "lt",
+        threshold: 500,
+      });
+      expect(parsePriceFilter("products less than 500")).toEqual({
+        operator: "lt",
+        threshold: 500,
+      });
+      expect(parsePriceFilter("anything cheaper than $500")).toEqual({
+        operator: "lt",
+        threshold: 500,
+      });
+      expect(parsePriceFilter("items more than 1000")).toEqual({
+        operator: "gt",
+        threshold: 1000,
+      });
+      expect(parsePriceFilter("products over 1000")).toEqual({
+        operator: "gt",
+        threshold: 1000,
+      });
+    });
+
+    it("returns products under 500 with strict less-than comparison", () => {
+      const result = retrieveProducts("Show me products under 500", { limit: 10 });
+      const prices = matchPrices(result);
+      expect(prices.length).toBeGreaterThan(0);
+      expect(prices.every((p) => p < 500)).toBe(true);
+      expect(matchIds(result)).toEqual(expect.arrayContaining([1, 5]));
+      expect(prices).not.toContain(599);
+      expect(prices).not.toContain(799);
+    });
+
+    it("returns products below $500", () => {
+      const result = retrieveProducts("Products below $500", { limit: 10 });
+      expect(matchPrices(result).every((p) => p < 500)).toBe(true);
+      expect(matchIds(result)).toEqual(expect.arrayContaining([1, 5]));
+    });
+
+    it("returns products less than 500", () => {
+      const result = retrieveProducts("Products less than 500", { limit: 10 });
+      expect(matchPrices(result).every((p) => p < 500)).toBe(true);
+      expect(matchIds(result)).toEqual(expect.arrayContaining([1, 5]));
+    });
+
+    it("returns products over 1000 with strict greater-than comparison", () => {
+      const result = retrieveProducts("Products over 1000", { limit: 10 });
+      const prices = matchPrices(result);
+      expect(prices).toEqual([1499]);
+      expect(matchIds(result)).toEqual([2]);
+    });
+
+    it("returns no matches for under 100 when catalog has none", () => {
+      const result = retrieveProducts("Products under 100", { limit: 10 });
+      expect(result.matches).toEqual([]);
+      expect(result.message.toLowerCase()).toMatch(/filter/);
+      expect(result.unsupportedTerms).toEqual([]);
+    });
+
+    it("does not treat rated above 4 as a price filter", () => {
+      expect(parsePriceFilter("show me products rated above 4")).toBeNull();
+    });
+
+    it("returns only laptops under 500 (no mobile leakage)", () => {
+      const result = retrieveProducts("Show me laptops under 500", { limit: 10 });
+      const prices = matchPrices(result);
+      expect(prices.every((p) => p < 500)).toBe(true);
+      expect(matchIds(result)).toEqual([5]);
+      expect(result.matches.every((m) => m.product.name.toLowerCase().includes("macbook"))).toBe(
+        true,
+      );
+    });
+  });
+
+  describe("structured category and rating filters", () => {
+    it("returns Macbook products for laptop queries", () => {
+      const result = retrieveProducts("Show me laptops", { limit: 10 });
+      expect(result.matches.length).toBeGreaterThan(0);
+      expect(
+        result.matches.every((m) => m.product.name.toLowerCase().includes("macbook")),
+      ).toBe(true);
+      expect(result.matches.some((m) => m.product.name.toLowerCase().includes("iphone"))).toBe(
+        false,
+      );
+    });
+
+    it("returns iPhone products for mobile queries", () => {
+      const result = retrieveProducts("Show me mobile products", { limit: 10 });
+      const ids = matchIds(result);
+      expect(ids).toEqual(expect.arrayContaining([0, 1]));
+      expect(ids.every((id) => id === 0 || id === 1)).toBe(true);
+    });
+
+    it("enforces ratings > 4 for rated above 4", () => {
+      const result = retrieveProducts("Show me products rated above 4", { limit: 10 });
+      expect(result.matches).toEqual([]);
+    });
+
+    it("keeps keyword ranking for high rating without numeric filter", () => {
+      const result = retrieveProducts("Show products with a high rating");
+      expect(result.matches.length).toBeGreaterThan(0);
+      const top = result.matches[0].product;
+      expect(top.ratings).toBeGreaterThanOrEqual(4);
+    });
   });
 });

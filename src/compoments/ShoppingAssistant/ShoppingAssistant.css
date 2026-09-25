@@ -1,0 +1,187 @@
+.shopping-assistant {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.shopping-assistant__header {
+  margin-bottom: var(--space-lg);
+}
+
+.shopping-assistant__title {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.shopping-assistant__description {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-normal);
+}
+
+.shopping-assistant__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: flex-end;
+  margin-bottom: var(--space-md);
+}
+
+.shopping-assistant__field {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.shopping-assistant__label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.shopping-assistant__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+}
+
+.shopping-assistant__input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.shopping-assistant__submit.btn-action {
+  flex-shrink: 0;
+}
+
+.shopping-assistant__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.shopping-assistant__suggestion {
+  padding: 0.35rem 0.75rem;
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.shopping-assistant__suggestion:hover,
+.shopping-assistant__suggestion:focus-visible {
+  border-color: var(--color-accent);
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.shopping-assistant__status {
+  min-height: 1.25rem;
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-sm);
+}
+
+.shopping-assistant__status--error {
+  color: var(--color-danger);
+}
+
+.shopping-assistant__status--loading {
+  color: var(--color-text-muted);
+}
+
+.shopping-assistant__source {
+  display: inline-block;
+  margin-bottom: var(--space-sm);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.shopping-assistant__answer {
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.shopping-assistant__matches-title {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.shopping-assistant__matches {
+  display: grid;
+  gap: var(--space-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .shopping-assistant__matches {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+.assistant-match {
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.assistant-match__name {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.assistant-match__price {
+  margin: 0 0 var(--space-xs);
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.assistant-match__meta {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.assistant-match__blurb {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  line-height: var(--line-height-normal);
+}
+
+.shopping-assistant__empty-matches {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

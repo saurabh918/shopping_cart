@@ -1,0 +1,15 @@
+{
+  "_doc": "Verified catalog URLs only. Generation uses mobiles and laptops pools; _fallback is not used for new products.",
+  "mobiles": [
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRS9VIXa2K5XYfjf4fjCc92rtzpX_1SizMkhw&s",
+    "https://img-new.cgtrader.com/items/901737/4a15f1e3c4/large/iphone-5s-3d-model-stl-sldprt-sldasm-slddrw-ige-igs-iges-stp.jpg"
+  ],
+  "laptops": [
+    "https://akm-img-a-in.tosshub.com/indiatoday/images/story/202207/MacBook_Air_M2_main.jpg?VersionId=9zEFIS24JT0DHsK8QeyI31iZLFfru048&size=690:388",
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT28uAIIFumtx75qIiZN5IujwacEbv-sc0DVg&s",
+    "https://telecomtalk.info/wp-content/uploads/2021/10/macbook-air-2022-might-not-be-much.jpeg"
+  ],
+  "headphones": [],
+  "accessories": [],
+  "_fallback": []
+}
