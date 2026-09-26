@@ -6,6 +6,8 @@ export const reducer = (state, action) => {
       return addProduct(state, action)
     case "quantityUpdated":
       return addQuantity(state, action)
+    case "clearCart":
+      return { ...state, cart: [] }
     default:
       return state;
   }

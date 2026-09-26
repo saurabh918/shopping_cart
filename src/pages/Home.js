@@ -1,9 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import { CartContext } from '../context/Context'
-import Filter from '../compoments/Filter';
+import FilterDrawer from '../compoments/FilterDrawer';
+import HomePageDiscovery from '../compoments/HomePageDiscovery';
 import Product from '../compoments/Product';
-import ShoppingAssistant from '../compoments/ShoppingAssistant/ShoppingAssistant';
+import FloatingShoppingAssistant from '../compoments/ShoppingAssistant/FloatingShoppingAssistant';
 import { catalogMeta, shouldShowProductionCatalogDevHint } from '../data/catalogRuntimeMeta';
 import { applyProductFilters, PRODUCTS_PAGE_SIZE } from '../utils/applyProductFilters';
 
@@ -40,6 +41,7 @@ const Home = () => {
   };
 
   return (
+    <FloatingShoppingAssistant>
     <main id="main-content" className='home-page' tabIndex={-1}>
     {showStagingIndicator && (
       <p className="catalog-staging-banner" role="status">
@@ -56,8 +58,13 @@ const Home = () => {
         in <code className="catalog-hint-code">.env.local</code> and restart the dev server for 1,000-product UI testing.
       </p>
     )}
-    <div className='wrapper home-page__layout'>
-      <Filter />
+    <div className="wrapper home-page__main">
+    <div className="home-page__toolbar">
+      <div className="home-page__toolbar-filters">
+        <FilterDrawer />
+      </div>
+      <HomePageDiscovery />
+    </div>
     {totalMatching ? (
     <section className="home-page__products" aria-labelledby="products-heading">
       <h1 id="products-heading" className="page-heading">Products</h1>
@@ -90,10 +97,8 @@ const Home = () => {
       </section>
     )}
     </div>
-    <div className="wrapper home-page__assistant">
-      <ShoppingAssistant />
-    </div>
     </main>
+    </FloatingShoppingAssistant>
   )
 }
 

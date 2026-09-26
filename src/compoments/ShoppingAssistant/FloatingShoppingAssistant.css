@@ -1,0 +1,185 @@
+.floating-assistant {
+  position: fixed;
+  right: max(var(--space-md), env(safe-area-inset-right, 0px));
+  bottom: max(var(--space-lg), env(safe-area-inset-bottom, 0px));
+  z-index: 1020;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-md);
+  pointer-events: none;
+}
+
+.floating-assistant__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.25);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.floating-assistant__panel {
+  position: relative;
+  z-index: 1;
+  width: min(400px, calc(100vw - 2 * var(--space-lg)));
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md, 0 12px 40px rgba(15, 23, 42, 0.12));
+  overflow: hidden;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(0.75rem) scale(0.98);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.floating-assistant__panel--open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.floating-assistant__panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.floating-assistant__panel-heading {
+  min-width: 0;
+}
+
+.floating-assistant__panel-title {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.floating-assistant__panel-desc {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-normal);
+}
+
+.floating-assistant__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.floating-assistant__close:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.floating-assistant__close:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--color-accent);
+}
+
+.floating-assistant__panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.floating-assistant__launcher {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  font-family: inherit;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.floating-assistant__launcher:hover {
+  filter: brightness(1.05);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(15, 23, 42, 0.12));
+}
+
+.floating-assistant__launcher:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.floating-assistant__launcher-icon {
+  font-size: 1.25rem;
+}
+
+@media (max-width: 767px) {
+  .floating-assistant {
+    right: max(var(--space-sm), env(safe-area-inset-right, 0px));
+    left: max(var(--space-sm), env(safe-area-inset-left, 0px));
+    align-items: stretch;
+  }
+
+  .floating-assistant__panel {
+    width: 100%;
+    max-height: min(70vh, 520px);
+  }
+
+  .floating-assistant__launcher {
+    align-self: flex-end;
+    width: auto;
+  }
+
+  .floating-assistant__launcher-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .floating-assistant__launcher {
+    width: 3rem;
+    height: 3rem;
+    padding: 0;
+    border-radius: 50%;
+  }
+}

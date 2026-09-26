@@ -7,6 +7,113 @@
   box-shadow: var(--shadow-sm);
 }
 
+.shopping-assistant--panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  margin-top: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.shopping-assistant__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-md);
+}
+
+.shopping-assistant__composer {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.shopping-assistant__composer-error {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}
+
+.shopping-assistant__form--composer {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: 0;
+}
+
+.shopping-assistant__form--composer .shopping-assistant__field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.shopping-assistant__submit--icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shopping-assistant__submit-icon {
+  font-size: 1.15rem;
+}
+
+.shopping-assistant__user-question {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.shopping-assistant__user-question-label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+
+.shopping-assistant--panel .shopping-assistant__suggestions {
+  margin-bottom: var(--space-md);
+}
+
+.shopping-assistant--panel .shopping-assistant__status {
+  margin-bottom: var(--space-sm);
+}
+
+.shopping-assistant--panel .shopping-assistant__answer {
+  margin-bottom: var(--space-md);
+}
+
+.shopping-assistant--panel .shopping-assistant__matches-title {
+  font-size: var(--font-size-base);
+}
+
+.shopping-assistant--panel .shopping-assistant__matches {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .shopping-assistant--panel .shopping-assistant__matches {
+    grid-template-columns: 1fr;
+  }
+}
+
 .shopping-assistant__header {
   margin-bottom: var(--space-lg);
 }
