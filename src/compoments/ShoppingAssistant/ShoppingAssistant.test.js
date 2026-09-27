@@ -47,7 +47,9 @@ describe("ShoppingAssistant", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /^ask$/i }));
 
-    expect(assistantApi.askAssistant).toHaveBeenCalledWith("What is the price of iPhone 6S?");
+    expect(assistantApi.askAssistant).toHaveBeenCalledWith({
+      question: "What is the price of iPhone 6S?",
+    });
     await waitFor(() => {
       expect(screen.getByText("The iPhone 6S costs $799.")).toBeInTheDocument();
     });

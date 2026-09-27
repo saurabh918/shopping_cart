@@ -33,7 +33,7 @@
     "test": "craco test",
     "demo:retrieval": "react-scripts test --watchAll=false --testPathPattern=retrieveProducts.test.js",
     "test:retrieval:staging": "react-scripts test --watchAll=false --testPathPattern=retrieveProducts.staging.test.js",
-    "test:ask-api": "npm run sync:catalog && npm run validate:catalog:sync && node netlify/tests/catalog.test.js && node netlify/tests/prompt.test.js && node netlify/tests/llm.diagnostics.test.js && node netlify/tests/mentionsOnlyRetrievedProducts.test.js && node netlify/tests/ask.handler.test.js",
+    "test:ask-api": "npm run sync:catalog && npm run validate:catalog:sync && node netlify/tests/catalog.test.js && node netlify/tests/prompt.test.js && node netlify/tests/llm.diagnostics.test.js && node netlify/tests/mentionsOnlyRetrievedProducts.test.js && node netlify/tests/intentRouter.test.js && node netlify/tests/conversationContext.test.js && node netlify/tests/ask.handler.test.js",
     "test:ask-api:staging": "npm run sync:catalog:staging && node netlify/tests/ask.handler.staging.test.js",
     "test:assistant": "react-scripts test --watchAll=false --testPathPattern=ShoppingAssistant.test.js",
     "generate:catalog": "node scripts/generate-catalog.js",

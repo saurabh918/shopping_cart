@@ -8,6 +8,21 @@ const { createLlmClient } = require("./llm/provider.cjs");
 const { MAX_CONTEXT_PRODUCTS } = require("./llm/prompt.cjs");
 const { logAssistantEvent } = require("./llm/diagnostics.cjs");
 const { classifyIntent, INTENTS } = require("./intentRouter.cjs");
+const {
+  detectProductFollowUp,
+  detectFollowUpOperation,
+  applyFollowUpOperation,
+  hasRecentProductContext,
+  shouldClearProductContextForQuestion,
+  isStandaloneProductQuery,
+  historyContainsProductRelatedUserMessage,
+  buildExpandedRetrievalQuery,
+  resolveProductsByIds,
+  productsToMatches,
+  FOLLOW_UP_CLARIFICATION,
+  sanitizeHistory,
+  validateContextProductIds,
+} = require("./conversationContext.cjs");
 
 const GREETING_ANSWER =
   "Hi! 👋 I can help you explore products, compare options, or answer general questions about tech and shopping.";
@@ -168,6 +183,7 @@ async function handleMixedRequest(question, options, requestStartedAt) {
     const generated = await llmClient.generateMixedAnswer({
       question,
       products: contextProducts,
+      history: options.history,
     });
 
     if (!mentionsOnlyRetrievedProducts(generated, contextProducts, allProducts)) {
@@ -257,7 +273,10 @@ async function handleGeneralConversationRequest(question, options, requestStarte
 
   const llmStartedAt = Date.now();
   try {
-    const generated = await llmClient.generateGeneralConversationAnswer({ question });
+    const generated = await llmClient.generateGeneralConversationAnswer({
+      question,
+      history: options.history,
+    });
     emitDiagnostic(options, {
       stage: "complete",
       classification: null,
@@ -313,7 +332,10 @@ async function handleGeneralKnowledgeRequest(question, options, requestStartedAt
 
   const llmStartedAt = Date.now();
   try {
-    const generated = await llmClient.generateGeneralKnowledgeAnswer({ question });
+    const generated = await llmClient.generateGeneralKnowledgeAnswer({
+      question,
+      history: options.history,
+    });
     emitDiagnostic(options, {
       stage: "complete",
       classification: null,
@@ -412,6 +434,7 @@ async function handleProductCatalogRequest(question, options, requestStartedAt) 
     const generated = await llmClient.generateAnswer({
       question,
       products: contextProducts,
+      history: options.history,
     });
 
     if (!mentionsOnlyRetrievedProducts(generated, contextProducts, allProducts)) {
@@ -469,11 +492,215 @@ async function handleProductCatalogRequest(question, options, requestStartedAt) 
   }
 }
 
+async function handleProductFollowUpRequest(
+  question,
+  options,
+  requestStartedAt,
+  { validatedContextIds }
+) {
+  const env = options.env || process.env;
+  const runRetrieval = options.retrieveProductsFn || retrieveProducts;
+  const classifyFn = createIntentClassifier(options);
+  const history = options.history || [];
+
+  let records;
+  try {
+    records = options.records || getProductKnowledgeBase(env);
+  } catch (err) {
+    if (err instanceof CatalogConfigurationError || err.code === "CATALOG_CONFIGURATION_ERROR") {
+      emitDiagnostic(options, {
+        stage: "catalog_resolve",
+        classification: "orchestrator_error",
+        durationMs: Date.now() - requestStartedAt,
+        answerSource: "configuration-fallback",
+      });
+      return buildCatalogConfigurationFailure(question, err);
+    }
+    throw err;
+  }
+
+  let contextIds = [...validatedContextIds];
+  let products = resolveProductsByIds(records, contextIds);
+
+  if (products.length === 0 && historyContainsProductRelatedUserMessage(history, classifyFn)) {
+    const expandedQuery = buildExpandedRetrievalQuery(history, question);
+    if (expandedQuery) {
+      const retrieval = runRetrieval(expandedQuery, { records });
+      products = retrieval.matches.map((entry) => entry.product).slice(0, 10);
+      contextIds = products.map((product) => product.id);
+    }
+  }
+
+  if (products.length === 0) {
+    emitDiagnostic(options, {
+      stage: "product_follow_up",
+      durationMs: Date.now() - requestStartedAt,
+      matchCount: 0,
+      answerSource: "general-conversation",
+    });
+    return buildNonRetrievalSuccessResponse(question, {
+      answer: FOLLOW_UP_CLARIFICATION,
+      answerSource: "general-conversation",
+      message: "Product follow-up lacked usable context.",
+    });
+  }
+
+  const operation = detectFollowUpOperation(question);
+  const resolvedProducts = applyFollowUpOperation(products, operation, contextIds);
+  const effectiveProducts = resolvedProducts.length > 0 ? resolvedProducts : products;
+  const matches = productsToMatches(effectiveProducts);
+  const contextProducts = getContextProducts(matches);
+  const allProducts = options.allProducts || records;
+
+  const baseResponse = {
+    success: true,
+    query: question,
+    normalizedQuery: question.toLowerCase().replace(/\s+/g, " "),
+    matches,
+    message: "Resolved product follow-up from conversation context.",
+    unsupportedTerms: [],
+  };
+
+  const llmClient = options.llmClient || createLlmClient({ env });
+  if (!llmClient.isConfigured()) {
+    return {
+      ...baseResponse,
+      answer: "AI responses are not configured yet. Please review the product matches below.",
+      answerSource: "configuration-fallback",
+      message: "Product follow-up requires AI generation, which is not configured.",
+    };
+  }
+
+  const llmStartedAt = Date.now();
+  try {
+    const generated = await llmClient.generateAnswer({
+      question,
+      products: contextProducts,
+      history,
+    });
+
+    if (!mentionsOnlyRetrievedProducts(generated, contextProducts, allProducts)) {
+      emitDiagnostic(options, {
+        stage: "grounding_guard",
+        classification: "grounding_rejection",
+        durationMs: Date.now() - requestStartedAt,
+        llmDurationMs: Date.now() - llmStartedAt,
+        matchCount: matches.length,
+        contextProductCount: contextProducts.length,
+        answerSource: "provider-error-fallback",
+      });
+      return {
+        ...baseResponse,
+        answer: "I found relevant catalog items, but I cannot provide a confident AI summary. "
+          + "Please review the product records below.",
+        answerSource: "provider-error-fallback",
+        message: "The generated answer mentioned products outside the retrieved context.",
+      };
+    }
+
+    emitDiagnostic(options, {
+      stage: "complete",
+      classification: null,
+      durationMs: Date.now() - requestStartedAt,
+      llmDurationMs: Date.now() - llmStartedAt,
+      matchCount: matches.length,
+      answerSource: "llm",
+    });
+
+    return {
+      ...baseResponse,
+      answer: generated,
+      answerSource: "llm",
+      message: "Generated product follow-up response from validated catalog context.",
+    };
+  } catch (err) {
+    emitDiagnostic(options, {
+      stage: "llm_generate",
+      classification: err.classification || "orchestrator_error",
+      providerErrorCode: err.code,
+      providerHttpStatus: err.status,
+      durationMs: Date.now() - requestStartedAt,
+      llmDurationMs: Date.now() - llmStartedAt,
+      matchCount: matches.length,
+      answerSource: "provider-error-fallback",
+    });
+    return {
+      ...baseResponse,
+      answer: "I resolved the products for your follow-up, but the AI service is unavailable right now. "
+        + "Please use the product matches below.",
+      answerSource: "provider-error-fallback",
+      message: "Product follow-up AI generation failed.",
+    };
+  }
+}
+
+function createIntentClassifier(options) {
+  if (options.classifyIntentFn) {
+    return (q) => options.classifyIntentFn(q);
+  }
+  return (q) => classifyIntent(q);
+}
+
+function resolveConversationOptions(question, options) {
+  const classifyFn = createIntentClassifier(options);
+  const history = sanitizeHistory(options.history);
+
+  let validatedContextIds = [];
+  if (Array.isArray(options.contextProductIds) && options.contextProductIds.length > 0) {
+    if (options.records) {
+      validatedContextIds = validateContextProductIds(options.contextProductIds, options.records);
+    } else {
+      try {
+        const records = getProductKnowledgeBase(options.env || process.env);
+        validatedContextIds = validateContextProductIds(options.contextProductIds, records);
+      } catch {
+        validatedContextIds = [];
+      }
+    }
+  }
+
+  if (shouldClearProductContextForQuestion(question, classifyFn)) {
+    validatedContextIds = [];
+  }
+
+  return { history, validatedContextIds, classifyFn };
+}
+
 async function handleAskRequest(question, options = {}) {
   const requestStartedAt = options.requestStartedAt ?? Date.now();
-  const { intent } = options.classifyIntentFn
-    ? options.classifyIntentFn(question)
-    : classifyIntent(question);
+  const { history, validatedContextIds, classifyFn } = resolveConversationOptions(question, options);
+  options = { ...options, history };
+
+  const { intent } = classifyFn(question);
+
+  if (
+    !isStandaloneProductQuery(question, classifyFn)
+    && detectProductFollowUp(question)
+    && hasRecentProductContext(history, validatedContextIds, classifyFn)
+  ) {
+    return handleProductFollowUpRequest(question, options, requestStartedAt, {
+      validatedContextIds,
+    });
+  }
+
+  if (
+    detectProductFollowUp(question)
+    && !hasRecentProductContext(history, [], classifyFn)
+    && !isStandaloneProductQuery(question, classifyFn)
+  ) {
+    emitDiagnostic(options, {
+      stage: "product_follow_up_clarification",
+      durationMs: Date.now() - requestStartedAt,
+      matchCount: 0,
+      answerSource: "general-conversation",
+      intent,
+    });
+    return buildNonRetrievalSuccessResponse(question, {
+      answer: FOLLOW_UP_CLARIFICATION,
+      answerSource: "general-conversation",
+      message: "Product follow-up without prior product context.",
+    });
+  }
 
   if (intent === INTENTS.GREETING) {
     emitDiagnostic(options, {

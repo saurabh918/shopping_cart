@@ -30,6 +30,8 @@ const MIXED_SEARCH_TAIL =
 
 const PRODUCT_SPECIFIC_PATTERNS = [
   /\b(?:price|cost)\s+of\b/i,
+  /\bwhat is the (?:price|cost) of\b/i,
+  /\bwhat is the rating of\b/i,
   /\bhow much (?:is|does|are|do)\b/i,
   /\bis .+ in stock\b/i,
   /\bin stock\b/i,
@@ -54,10 +56,15 @@ const PRODUCT_SEARCH_PATTERNS = [
   /\bfind(?: me)?\b/i,
   /\blist\b/i,
   /\bdo you have\b/i,
+  /\bwhich .+\bdo you have\b/i,
+  /\bhow many\b.+\b(?:are there|do you have|in the catalog|in stock)\b/i,
   /\bproducts under\b/i,
   /\bunder\s+\$?\d/i,
   /\b(?:any|available)\s+.+\b(?:in stock|for sale)\b/i,
 ];
+
+const CATALOG_FACT_QUESTION =
+  /\bwhat is the (?:price|cost|rating|stock|delivery)\b/i;
 
 const GENERAL_KNOWLEDGE_PATTERNS = [
   /^what is (?:a|an)\s+/i,
@@ -112,7 +119,16 @@ function isProductSpecific(lower, normalized) {
 }
 
 function isProductRecommendation(normalized) {
-  return PRODUCT_RECOMMENDATION_PATTERNS.some((pattern) => pattern.test(normalized));
+  if (PRODUCT_RECOMMENDATION_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    return true;
+  }
+  if (
+    /\bwhich .+\b(?:cheapest|most expensive|highest rated|lowest priced)\b/i.test(normalized)
+    && !/\bwhich one\b/i.test(normalized)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function isProductSearch(normalized, lower) {
@@ -126,12 +142,20 @@ function isProductSearch(normalized, lower) {
   return false;
 }
 
+function isCatalogFactQuestion(normalized) {
+  return CATALOG_FACT_QUESTION.test(normalized);
+}
+
 function isGeneralKnowledge(normalized, lower) {
+  if (isCatalogFactQuestion(normalized)) {
+    return false;
+  }
   if (GENERAL_KNOWLEDGE_PATTERNS.some((pattern) => pattern.test(normalized))) {
     return true;
   }
   if (/^what is [a-z][a-z0-9\s-]+\?$/i.test(normalized)
-    && !/\b(?:price|stock|delivery|in stock)\b/i.test(lower)) {
+    && !/\bwhat is the\b/i.test(normalized)
+    && !/\b(?:price|stock|delivery|in stock|rating)\b/i.test(lower)) {
     return true;
   }
   return false;
@@ -166,6 +190,10 @@ function classifyIntent(question) {
     return { intent: INTENTS.PRODUCT_SPECIFIC, confidence: CONFIDENCE.HIGH };
   }
 
+  if (isGeneralKnowledge(normalized, lower)) {
+    return { intent: INTENTS.GENERAL_KNOWLEDGE, confidence: CONFIDENCE.HIGH };
+  }
+
   if (isProductRecommendation(normalized)) {
     return { intent: INTENTS.PRODUCT_RECOMMENDATION, confidence: CONFIDENCE.HIGH };
   }
@@ -178,10 +206,6 @@ function classifyIntent(question) {
     return { intent: INTENTS.UNKNOWN, confidence: CONFIDENCE.HIGH };
   }
 
-  if (isGeneralKnowledge(normalized, lower)) {
-    return { intent: INTENTS.GENERAL_KNOWLEDGE, confidence: CONFIDENCE.HIGH };
-  }
-
   return { intent: INTENTS.UNKNOWN, confidence: CONFIDENCE.MEDIUM };
 }
 
@@ -190,4 +214,6 @@ module.exports = {
   CONFIDENCE,
   normalizeQuestion,
   classifyIntent,
+  isGeneralKnowledge,
+  isCatalogFactQuestion,
 };

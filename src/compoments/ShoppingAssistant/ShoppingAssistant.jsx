@@ -66,12 +66,44 @@ const ShoppingAssistant = ({ hideHeader = false, variant = "default" }) => {
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState("");
   const [lastQuestion, setLastQuestion] = useState("");
+  const [conversationHistory, setConversationHistory] = useState([]);
+  const [contextProductIds, setContextProductIds] = useState([]);
 
   const resetResponse = useCallback(() => {
     setAnswer("");
     setMatches([]);
     setAnswerSource(null);
   }, []);
+
+  const extractContextProductIds = useCallback((data) => {
+    if (!Array.isArray(data?.matches)) return [];
+    const ids = [];
+    const seen = new Set();
+    for (const match of data.matches) {
+      const id = match?.product?.id;
+      if (!Number.isInteger(id) || id < 0 || seen.has(id)) continue;
+      seen.add(id);
+      ids.push(id);
+      if (ids.length >= 10) break;
+    }
+    return ids;
+  }, []);
+
+  const updateProductContextFromResponse = useCallback((data) => {
+    const source = data?.answerSource;
+    if (
+      source === "general-knowledge"
+      || source === "general-conversation"
+      || source === "greeting"
+    ) {
+      setContextProductIds([]);
+      return;
+    }
+    const ids = extractContextProductIds(data);
+    if (ids.length > 0) {
+      setContextProductIds(ids);
+    }
+  }, [extractContextProductIds]);
 
   const submitQuestion = useCallback(async (rawQuestion) => {
     const trimmed = rawQuestion.trim();
@@ -87,6 +119,8 @@ const ShoppingAssistant = ({ hideHeader = false, variant = "default" }) => {
       return;
     }
 
+    const historyForRequest = [...conversationHistory];
+
     setLoading(true);
     setLastQuestion(trimmed);
     setQuestion("");
@@ -94,17 +128,31 @@ const ShoppingAssistant = ({ hideHeader = false, variant = "default" }) => {
     inputRef.current?.focus();
 
     try {
-      const data = await askAssistant(trimmed);
-      setAnswer(typeof data.answer === "string" ? data.answer : "");
+      const payload = { question: trimmed };
+      if (historyForRequest.length > 0) {
+        payload.history = historyForRequest;
+      }
+      if (contextProductIds.length > 0) {
+        payload.contextProductIds = contextProductIds;
+      }
+      const data = await askAssistant(payload);
+      const answerText = typeof data.answer === "string" ? data.answer : "";
+      setAnswer(answerText);
       setMatches(Array.isArray(data.matches) ? data.matches : []);
       setAnswerSource(data.answerSource || null);
+      setConversationHistory((prev) => [
+        ...prev,
+        { role: "user", content: trimmed },
+        { role: "assistant", content: answerText },
+      ]);
+      updateProductContextFromResponse(data);
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
       resetResponse();
     } finally {
       setLoading(false);
     }
-  }, [resetResponse]);
+  }, [conversationHistory, contextProductIds, resetResponse, updateProductContextFromResponse]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -258,7 +306,30 @@ const ShoppingAssistant = ({ hideHeader = false, variant = "default" }) => {
         <>
           <div className="shopping-assistant__scroll" aria-label="Assistant messages and results">
             {suggestions}
-            {lastQuestion && (
+            {conversationHistory.map((entry, index) => {
+              if (entry.role === "user") {
+                return (
+                  <p
+                    key={`user-${index}`}
+                    className="shopping-assistant__user-question"
+                  >
+                    <span className="shopping-assistant__user-question-label">You asked</span>
+                    {entry.content}
+                  </p>
+                );
+              }
+              if (entry.role === "assistant" && index < conversationHistory.length - 1) {
+                return (
+                  <div key={`assistant-${index}`} className="shopping-assistant__response">
+                    <AssistantAnswerMarkdown content={entry.content} />
+                  </div>
+                );
+              }
+              return null;
+            })}
+            {loading && lastQuestion && !conversationHistory.some(
+              (entry) => entry.role === "user" && entry.content === lastQuestion
+            ) && (
               <p className="shopping-assistant__user-question">
                 <span className="shopping-assistant__user-question-label">You asked</span>
                 {lastQuestion}

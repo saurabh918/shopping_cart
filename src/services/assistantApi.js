@@ -1,11 +1,28 @@
 const ASK_ENDPOINT = "/.netlify/functions/ask";
 export const MAX_QUESTION_LENGTH = 500;
 
-export async function askAssistant(question) {
+/**
+ * @param {{ question: string, history?: Array<{ role: string, content: string }>, contextProductIds?: number[] }} payload
+ */
+export async function askAssistant(payload) {
+  const question = typeof payload === "string" ? payload : payload?.question;
+  const body =
+    typeof payload === "string"
+      ? { question: payload }
+      : {
+          question,
+          ...(Array.isArray(payload.history) && payload.history.length > 0
+            ? { history: payload.history }
+            : {}),
+          ...(Array.isArray(payload.contextProductIds) && payload.contextProductIds.length > 0
+            ? { contextProductIds: payload.contextProductIds }
+            : {}),
+        };
+
   const response = await fetch(ASK_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify(body),
   });
 
   let data;

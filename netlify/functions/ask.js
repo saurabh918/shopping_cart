@@ -1,5 +1,10 @@
 const { handleAskRequest } = require("../lib/askOrchestrator.cjs");
 const { createCorrelationId } = require("../lib/llm/diagnostics.cjs");
+const { getProductKnowledgeBase, CatalogConfigurationError } = require("../lib/catalog.cjs");
+const {
+  sanitizeHistory,
+  validateContextProductIds,
+} = require("../lib/conversationContext.cjs");
 
 const MAX_QUESTION_LENGTH = 500;
 const MAX_BODY_LENGTH = 8000;
@@ -63,6 +68,12 @@ function validateQuestion(question) {
   return { ok: true, question: trimmed };
 }
 
+function parseConversationPayload(body, records) {
+  const history = sanitizeHistory(body.history);
+  const contextProductIds = validateContextProductIds(body.contextProductIds, records);
+  return { history, contextProductIds };
+}
+
 /**
  * Netlify Function: retrieval-first shopping assistant API (Phase 6C adds optional LLM).
  */
@@ -98,11 +109,29 @@ const handler = async (event) => {
       return respond(400, { success: false, error: validated.error });
     }
 
+    let records;
+    try {
+      records = getProductKnowledgeBase(process.env);
+    } catch (err) {
+      if (err instanceof CatalogConfigurationError || err.code === "CATALOG_CONFIGURATION_ERROR") {
+        return respond(503, {
+          success: false,
+          error: err.message || "The assistant catalog is not configured correctly.",
+        });
+      }
+      throw err;
+    }
+
+    const conversation = parseConversationPayload(parsedBody.body, records);
+
     const requestStartedAt = Date.now();
     const result = await handleAskRequest(validated.question, {
       llmClient: llmClientOverride || undefined,
       correlationId: createCorrelationId(),
       requestStartedAt,
+      history: conversation.history,
+      contextProductIds: conversation.contextProductIds,
+      records,
     });
 
     if (result.success === false) {

@@ -122,20 +122,20 @@ function createLlmClient(options = {}) {
         clearTimeout(timeout);
       }
     },
-    async generateAnswer({ question, products }) {
-      const messages = buildChatMessages(question, products);
+    async generateAnswer({ question, products, history }) {
+      const messages = buildChatMessages(question, products, history || []);
       return this.completeChat(messages, 0.2);
     },
-    async generateGeneralKnowledgeAnswer({ question }) {
-      const messages = buildGeneralKnowledgeChatMessages(question);
+    async generateGeneralKnowledgeAnswer({ question, history }) {
+      const messages = buildGeneralKnowledgeChatMessages(question, history || []);
       return this.completeChat(messages, 0.4);
     },
-    async generateGeneralConversationAnswer({ question }) {
-      const messages = buildGeneralConversationChatMessages(question);
+    async generateGeneralConversationAnswer({ question, history }) {
+      const messages = buildGeneralConversationChatMessages(question, history || []);
       return this.completeChat(messages, 0.5);
     },
-    async generateMixedAnswer({ question, products }) {
-      const messages = buildMixedChatMessages(question, products);
+    async generateMixedAnswer({ question, products, history }) {
+      const messages = buildMixedChatMessages(question, products, history || []);
       return this.completeChat(messages, 0.3);
     },
   };
