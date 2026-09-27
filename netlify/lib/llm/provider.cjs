@@ -1,4 +1,8 @@
-const { buildChatMessages } = require("./prompt.cjs");
+const {
+  buildChatMessages,
+  buildGeneralKnowledgeChatMessages,
+  buildMixedChatMessages,
+} = require("./prompt.cjs");
 const { enrichProviderError } = require("./diagnostics.cjs");
 
 const DEFAULT_MODELS = {
@@ -43,7 +47,7 @@ function createLlmClient(options = {}) {
     isConfigured() {
       return Boolean(config.apiKey) && isSupportedProvider(config.provider) && Boolean(config.model);
     },
-    async generateAnswer({ question, products }) {
+    async completeChat(messages, temperature = 0.2) {
       if (!this.isConfigured()) {
         const error = new Error("LLM is not configured.");
         error.code = "LLM_NOT_CONFIGURED";
@@ -51,7 +55,6 @@ function createLlmClient(options = {}) {
       }
 
       const endpoint = PROVIDER_ENDPOINTS[config.provider];
-      const messages = buildChatMessages(question, products);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
       const startedAt = Date.now();
@@ -66,7 +69,7 @@ function createLlmClient(options = {}) {
           body: JSON.stringify({
             model: config.model,
             messages,
-            temperature: 0.2,
+            temperature,
           }),
           signal: controller.signal,
         });
@@ -117,6 +120,18 @@ function createLlmClient(options = {}) {
       } finally {
         clearTimeout(timeout);
       }
+    },
+    async generateAnswer({ question, products }) {
+      const messages = buildChatMessages(question, products);
+      return this.completeChat(messages, 0.2);
+    },
+    async generateGeneralKnowledgeAnswer({ question }) {
+      const messages = buildGeneralKnowledgeChatMessages(question);
+      return this.completeChat(messages, 0.4);
+    },
+    async generateMixedAnswer({ question, products }) {
+      const messages = buildMixedChatMessages(question, products);
+      return this.completeChat(messages, 0.3);
     },
   };
 }

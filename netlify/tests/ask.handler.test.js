@@ -29,10 +29,20 @@ async function invoke(body, method = "POST") {
   };
 }
 
-function createMockLlm({ configured = true, answer = "Mocked catalog answer.", shouldFail = false } = {}) {
+function createMockLlm({
+  configured = true,
+  answer = "Mocked catalog answer.",
+  generalAnswer = "Mocked general knowledge answer.",
+  mixedAnswer = "GENERAL EXPLANATION\nBrief concept.\n\nCATALOG RESULTS\nCatalog summary.",
+  shouldFail = false,
+} = {}) {
   const calls = [];
+  const generalCalls = [];
+  const mixedCalls = [];
   return {
     calls,
+    generalCalls,
+    mixedCalls,
     client: {
       isConfigured: () => configured,
       getConfig: () => ({ provider: "groq", model: "test-model", hasApiKey: configured }),
@@ -49,6 +59,34 @@ function createMockLlm({ configured = true, answer = "Mocked catalog answer.", s
           throw error;
         }
         return answer;
+      },
+      generateGeneralKnowledgeAnswer: async (payload) => {
+        generalCalls.push(payload);
+        if (shouldFail) {
+          const error = new Error("Provider request failed.");
+          error.code = "LLM_PROVIDER_ERROR";
+          throw error;
+        }
+        if (generalAnswer == null || generalAnswer === "") {
+          const error = new Error("Provider returned an empty answer.");
+          error.code = "LLM_EMPTY_RESPONSE";
+          throw error;
+        }
+        return generalAnswer;
+      },
+      generateMixedAnswer: async (payload) => {
+        mixedCalls.push(payload);
+        if (shouldFail) {
+          const error = new Error("Provider request failed.");
+          error.code = "LLM_PROVIDER_ERROR";
+          throw error;
+        }
+        if (mixedAnswer == null || mixedAnswer === "") {
+          const error = new Error("Provider returned an empty answer.");
+          error.code = "LLM_EMPTY_RESPONSE";
+          throw error;
+        }
+        return mixedAnswer;
       },
     },
   };
@@ -109,6 +147,30 @@ async function run() {
   await check("invalid question type", async () => {
     const res = await invoke({ question: 123 });
     assert.strictEqual(res.statusCode, 400);
+  });
+
+  await check("Hi returns greeting without retrieval matches", async () => {
+    const mock = createMockLlm();
+    __setLlmClientForTests(mock.client);
+    const res = await invoke({ question: "Hi" });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.answerSource, "greeting");
+    assert.strictEqual(res.body.matches.length, 0);
+    assert.strictEqual(mock.calls.length, 0);
+    assert.strictEqual(mock.generalCalls.length, 0);
+    __resetLlmClientForTests();
+  });
+
+  await check("What is a laptop returns general-knowledge", async () => {
+    const mock = createMockLlm({ generalAnswer: "A laptop is a portable computer." });
+    __setLlmClientForTests(mock.client);
+    const res = await invoke({ question: "What is a laptop?" });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.answerSource, "general-knowledge");
+    assert.strictEqual(res.body.matches.length, 0);
+    assert.strictEqual(mock.generalCalls.length, 1);
+    assert.strictEqual(mock.calls.length, 0);
+    __resetLlmClientForTests();
   });
 
   await check("in stock question retrieval matches", async () => {
