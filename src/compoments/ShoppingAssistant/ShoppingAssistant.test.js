@@ -74,6 +74,27 @@ describe("ShoppingAssistant", () => {
     });
   });
 
+  it("renders markdown bold in assistant answers", async () => {
+    assistantApi.askAssistant.mockResolvedValue({
+      success: true,
+      answer: "**Product Name** - $799",
+      answerSource: "llm",
+      matches: [],
+    });
+
+    render(<ShoppingAssistant />);
+    fireEvent.change(screen.getByLabelText(/your question/i), {
+      target: { value: "test markdown" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^ask$/i }));
+
+    await waitFor(() => {
+      const bold = screen.getByText("Product Name");
+      expect(bold.tagName).toBe("STRONG");
+    });
+    expect(screen.queryByText(/\*\*Product Name\*\*/)).not.toBeInTheDocument();
+  });
+
   it("handles API errors", async () => {
     assistantApi.askAssistant.mockRejectedValue(new Error("Network failed"));
 

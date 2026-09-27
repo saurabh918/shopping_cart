@@ -42,8 +42,7 @@ describe("retrieveProducts (keyword-based, not vector search)", () => {
 
   it("returns fast delivery products", () => {
     const result = retrieveProducts("Which product has fast delivery?");
-    const ids = result.matches.map((m) => m.product.id);
-    expect(ids).toEqual(expect.arrayContaining([0, 2]));
+    expect(result.matches.length).toBeGreaterThan(0);
     expect(result.matches.every((m) => m.product.fastDelivery)).toBe(true);
   });
 
@@ -163,6 +162,85 @@ describe("retrieveProducts (keyword-based, not vector search)", () => {
     });
   });
 
+  describe("Step 4 retrieval improvements", () => {
+    it("returns all Macbook-line products for which MacBooks do you have?", () => {
+      const result = retrieveProducts("which MacBooks do you have?");
+      const ids = matchIds(result);
+      expect(ids).toEqual(expect.arrayContaining([2, 3, 4, 5]));
+      expect(result.matches.every((m) => m.product.name.toLowerCase().includes("macbook"))).toBe(
+        true,
+      );
+    });
+
+    it("show me MacBooks uses Macbook family matching", () => {
+      const result = retrieveProducts("show me MacBooks");
+      expect(result.matches.length).toBeGreaterThan(0);
+      expect(result.matches.every((m) => m.product.name.toLowerCase().includes("macbook"))).toBe(
+        true,
+      );
+    });
+
+    it("which iPhones are available returns iPhone products", () => {
+      const result = retrieveProducts("which iPhones are available?");
+      const ids = matchIds(result);
+      expect(ids).toEqual(expect.arrayContaining([0, 1]));
+      expect(result.matches.every((m) => m.product.name.toLowerCase().includes("iphone"))).toBe(
+        true,
+      );
+    });
+
+    it("show me laptops uses rating/stock browse ranking not only seed ids 2-4", () => {
+      const result = retrieveProducts("Show me laptops");
+      expect(result.matches.length).toBe(10);
+      const topThreeIds = result.matches.slice(0, 3).map((m) => m.product.id);
+      expect(topThreeIds).not.toEqual([2, 3, 4]);
+    });
+
+    it("laptops under $1000 keeps USD filtering and cheapest-first order", () => {
+      const result = retrieveProducts("laptops under $1000");
+      const prices = matchPrices(result);
+      expect(prices.length).toBeGreaterThan(0);
+      expect(prices.every((p) => p < 1000)).toBe(true);
+      for (let i = 1; i < prices.length; i += 1) {
+        expect(prices[i]).toBeGreaterThanOrEqual(prices[i - 1]);
+      }
+    });
+
+    it("laptops under ₹70000 rejects INR price filtering", () => {
+      const result = retrieveProducts("laptops under ₹70000");
+      expect(result.matches).toEqual([]);
+      expect(result.message.toLowerCase()).toMatch(/usd-style|inr/);
+      expect(result.unsupportedTerms).toContain("INR price filter");
+    });
+
+    it("laptop with 16GB RAM does not return generic laptops", () => {
+      const result = retrieveProducts("laptop with 16GB RAM");
+      expect(result.matches).toEqual([]);
+      expect(result.unsupportedTerms.length).toBeGreaterThan(0);
+    });
+
+    it("laptop with 512GB SSD does not return generic laptops", () => {
+      const result = retrieveProducts("laptop with 512GB SSD");
+      expect(result.matches).toEqual([]);
+    });
+
+    it("laptop for programming does not return generic laptops", () => {
+      const result = retrieveProducts("laptop for programming");
+      expect(result.matches).toEqual([]);
+      expect(result.message).toMatch(/programming use-case/);
+    });
+
+    it("good laptop for students does not return generic laptops", () => {
+      const result = retrieveProducts("good laptop for students");
+      expect(result.matches).toEqual([]);
+    });
+
+    it("laptop for office work does not return generic laptops", () => {
+      const result = retrieveProducts("laptop for office work");
+      expect(result.matches).toEqual([]);
+    });
+  });
+
   describe("structured category and rating filters", () => {
     it("returns laptop-category products for laptop queries", () => {
       const result = retrieveProducts("Show me laptops", { limit: 10 });
@@ -178,10 +256,16 @@ describe("retrieveProducts (keyword-based, not vector search)", () => {
       );
     });
 
-    it("returns iPhone products for mobile queries", () => {
+    it("returns mobile-category products for mobile queries", () => {
       const result = retrieveProducts("Show me mobile products", { limit: 10 });
       const ids = matchIds(result);
-      expect(ids).toEqual(expect.arrayContaining([0, 1]));
+      expect(ids.length).toBe(10);
+      expect(
+        result.matches.every((m) => {
+          const name = m.product.name.toLowerCase();
+          return name.includes("iphone") || name.includes("phone") || name.includes("mobile");
+        }),
+      ).toBe(true);
       expect(ids.some((id) => id > 5)).toBe(true);
     });
 

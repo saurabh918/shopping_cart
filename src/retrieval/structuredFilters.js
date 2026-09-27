@@ -3,9 +3,11 @@
  */
 
 const PRICE_LT_PATTERN =
-  /\b(?:under|below|less than|cheaper than)\s+\$?(\d+(?:\.\d+)?)\b/;
+  /\b(?:under|below|less than|cheaper than)\s+\$?(\d+(?:\.\d+)?)(?:\s+dollars?)?\b/;
 const PRICE_GT_PATTERN =
-  /\b(?:over|more than)\s+\$?(\d+(?:\.\d+)?)\b/;
+  /\b(?:over|more than)\s+\$?(\d+(?:\.\d+)?)(?:\s+dollars?)?\b/;
+
+const INR_CURRENCY_PATTERN = /₹|\brs\.?\b|\binr\b|\brupees?\b/i;
 
 const RATING_ABOVE_PATTERN =
   /\b(?:rated|rating|ratings)\s+(?:above|over)\s+(\d+)\b/;
@@ -16,8 +18,23 @@ const RATING_AT_LEAST_PATTERN =
 const RATING_BELOW_PATTERN =
   /\b(?:rated|rating|ratings)\s+below\s+(\d+)\b/;
 
+export function queryUsesInrCurrency(normalized) {
+  return INR_CURRENCY_PATTERN.test(normalized);
+}
+
+function inrPriceFilterRequested(normalized) {
+  if (!normalized || !queryUsesInrCurrency(normalized)) return false;
+  return (
+    /\b(under|below|less than|cheaper than|over|more than)\b/.test(normalized)
+    && /\d/.test(normalized)
+  );
+}
+
 export function parsePriceFilter(normalized) {
   if (!normalized) return null;
+  if (inrPriceFilterRequested(normalized)) {
+    return { inrUnsupported: true };
+  }
 
   const ltMatch = normalized.match(PRICE_LT_PATTERN);
   if (ltMatch) {
@@ -78,17 +95,84 @@ export function parseRatingFilter(normalized) {
 export function parseCategoryFilter(normalized) {
   if (!normalized) return null;
 
+  const hasMacbookLine = /\bmacbooks?\b/.test(normalized);
+  const hasIphoneLine = /\biphones?\b/.test(normalized);
+
   const hasLaptop =
     /\b(laptops?|notebooks?)(?:\s+products?)?\b/.test(normalized)
-    || /\bshow me (?:the )?(laptops?|notebooks?)\b/.test(normalized);
+    || /\bshow me (?:the )?(laptops?|notebooks?)\b/.test(normalized)
+    || hasMacbookLine;
   const hasMobile =
     /\bmobile(?:\s+products?)?\b/.test(normalized)
     || /\b(?:phones|mobiles)(?:\s+products?)?\b/.test(normalized)
-    || /\bphone products\b/.test(normalized);
+    || /\bphone products\b/.test(normalized)
+    || hasIphoneLine;
 
   if (hasLaptop && !hasMobile) return "laptop";
   if (hasMobile && !hasLaptop) return "mobile";
   return null;
+}
+
+export function parseProductLineFilter(normalized) {
+  if (!normalized) return null;
+  if (/\bmacbooks?\b/.test(normalized)) return "macbook";
+  if (/\biphones?\b/.test(normalized)) return "iphone";
+  return null;
+}
+
+export function productMatchesProductLine(product, stem) {
+  if (!stem) return true;
+  const name = String(product.name || "").toLowerCase();
+  const searchText = String(product.searchText || "").toLowerCase();
+  return name.includes(stem) || searchText.includes(stem);
+}
+
+export function detectUnsupportedCatalogConstraints(normalized) {
+  if (!normalized) return [];
+
+  const constraints = [];
+  const asksLaptop = /\b(laptops?|notebooks?|macbooks?)\b/.test(normalized);
+
+  if (/\b\d+\s*gb\b/.test(normalized)) {
+    constraints.push("memory/storage capacity (GB)");
+  }
+  if (/\bram\b/.test(normalized) && asksLaptop) {
+    constraints.push("RAM");
+  }
+  if (/\bssd\b/.test(normalized) && asksLaptop) {
+    constraints.push("SSD");
+  }
+  if (/\bprogramming\b/.test(normalized) && asksLaptop) {
+    constraints.push("programming use-case");
+  }
+  if (asksLaptop) {
+    if (/\bfor\s+students?\b/.test(normalized) || (/\bstudents?\b/.test(normalized) && /\b(for|good)\b/.test(normalized))) {
+      constraints.push("student use-case");
+    }
+    if (/\bfor\s+office\b/.test(normalized) || /\boffice\s+work\b/.test(normalized)) {
+      constraints.push("office use-case");
+    }
+  }
+
+  return constraints;
+}
+
+export function compareCategoryBrowseProducts(a, b, structured) {
+  let lineBoostA = 0;
+  let lineBoostB = 0;
+  if (structured.productLine) {
+    lineBoostA = productMatchesProductLine(a, structured.productLine) ? 1 : 0;
+    lineBoostB = productMatchesProductLine(b, structured.productLine) ? 1 : 0;
+  }
+  if (lineBoostB !== lineBoostA) return lineBoostB - lineBoostA;
+
+  const stockA = a.stockStatus === "in_stock" ? 1 : 0;
+  const stockB = b.stockStatus === "in_stock" ? 1 : 0;
+  if (stockB !== stockA) return stockB - stockA;
+
+  if (b.ratings !== a.ratings) return b.ratings - a.ratings;
+
+  return a.id - b.id;
 }
 
 export function queryAsksFastDelivery(normalized) {
@@ -99,25 +183,28 @@ export function queryAsksFastDelivery(normalized) {
   );
 }
 
-/**
- * @returns {{ category: string|null, priceFilter: object|null, ratingFilter: object|null, fastDelivery: boolean|null }}
- */
 export function parseStructuredQuery(normalized) {
   return {
     category: parseCategoryFilter(normalized),
     priceFilter: parsePriceFilter(normalized),
     ratingFilter: parseRatingFilter(normalized),
     fastDelivery: queryAsksFastDelivery(normalized) ? true : null,
+    productLine: parseProductLineFilter(normalized),
   };
 }
 
 export function hasStructuredFilters(structured) {
   return Boolean(
     structured.category
-    || structured.priceFilter
+    || structured.productLine
+    || (structured.priceFilter && !structured.priceFilter.inrUnsupported)
     || structured.ratingFilter
     || structured.fastDelivery === true,
   );
+}
+
+export function isInrPriceFilter(structured) {
+  return Boolean(structured.priceFilter?.inrUnsupported);
 }
 
 /** @returns {'laptop'|'mobile'|null} */
@@ -150,7 +237,11 @@ export function productMatchesStructured(product, structured) {
     if (productCategory(product) !== structured.category) return false;
   }
 
-  if (structured.priceFilter) {
+  if (structured.productLine) {
+    if (!productMatchesProductLine(product, structured.productLine)) return false;
+  }
+
+  if (structured.priceFilter && !structured.priceFilter.inrUnsupported) {
     const price = Number(product.price);
     if (!Number.isFinite(price)) return false;
     const { operator, threshold } = structured.priceFilter;
@@ -188,7 +279,7 @@ export function sortStructuredMatches(products, structured) {
     sorted.sort((a, b) => b.ratings - a.ratings || a.id - b.id);
     return sorted;
   }
-  sorted.sort((a, b) => a.id - b.id);
+  sorted.sort((a, b) => compareCategoryBrowseProducts(a, b, structured));
   return sorted;
 }
 
@@ -197,7 +288,7 @@ export function structuredMatchReasons(product, structured) {
   if (structured.category) {
     reasons.push(`Product category matches ${structured.category}`);
   }
-  if (structured.priceFilter) {
+  if (structured.priceFilter && !structured.priceFilter.inrUnsupported) {
     const { operator, threshold } = structured.priceFilter;
     reasons.push(
       operator === "lt"

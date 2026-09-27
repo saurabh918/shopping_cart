@@ -231,8 +231,25 @@
   background: var(--color-bg);
   border-radius: var(--radius-md);
   line-height: var(--line-height-normal);
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+.shopping-assistant__answer-p {
+  margin: 0 0 var(--space-sm);
+}
+
+.shopping-assistant__answer-p:last-child {
+  margin-bottom: 0;
+}
+
+.shopping-assistant__answer-list {
+  margin: 0 0 var(--space-sm) var(--space-lg);
+  padding: 0;
+}
+
+.shopping-assistant__answer-heading {
+  margin: 0 0 var(--space-sm);
+  font-weight: 600;
 }
 
 .shopping-assistant__matches-title {

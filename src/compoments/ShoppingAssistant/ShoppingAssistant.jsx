@@ -1,6 +1,7 @@
 import React, { useCallback, useId, useRef, useState } from "react";
 import { AiOutlineSend } from "react-icons/ai";
 import { askAssistant, MAX_QUESTION_LENGTH } from "../../services/assistantApi";
+import AssistantAnswerMarkdown from "./AssistantAnswerMarkdown";
 import "./ShoppingAssistant.css";
 
 const SUGGESTED_QUESTIONS = [
@@ -11,6 +12,7 @@ const SUGGESTED_QUESTIONS = [
 
 const SOURCE_LABELS = {
   llm: "AI response",
+  "general-conversation": "Assistant response",
   "retrieval-fallback": "Catalog fallback",
   "configuration-fallback": "AI configuration unavailable",
   "provider-error-fallback": "Provider unavailable",
@@ -162,7 +164,7 @@ const ShoppingAssistant = ({ hideHeader = false, variant = "default" }) => {
           {sourceLabel && (
             <span className="shopping-assistant__source">{sourceLabel}</span>
           )}
-          <p className="shopping-assistant__answer">{answer}</p>
+          <AssistantAnswerMarkdown content={answer} />
         </div>
       )}
 

@@ -1,6 +1,7 @@
 const {
   buildChatMessages,
   buildGeneralKnowledgeChatMessages,
+  buildGeneralConversationChatMessages,
   buildMixedChatMessages,
 } = require("./prompt.cjs");
 const { enrichProviderError } = require("./diagnostics.cjs");
@@ -128,6 +129,10 @@ function createLlmClient(options = {}) {
     async generateGeneralKnowledgeAnswer({ question }) {
       const messages = buildGeneralKnowledgeChatMessages(question);
       return this.completeChat(messages, 0.4);
+    },
+    async generateGeneralConversationAnswer({ question }) {
+      const messages = buildGeneralConversationChatMessages(question);
+      return this.completeChat(messages, 0.5);
     },
     async generateMixedAnswer({ question, products }) {
       const messages = buildMixedChatMessages(question, products);

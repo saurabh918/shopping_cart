@@ -12,7 +12,16 @@ describe("structuredFilters parsing", () => {
       operator: "lt",
       threshold: 500,
     });
+    expect(parsePriceFilter("laptops under 1000 dollars")).toEqual({
+      operator: "lt",
+      threshold: 1000,
+    });
     expect(parsePriceFilter("show me products rated above 4")).toBeNull();
+  });
+
+  it("marks INR price filters as unsupported instead of USD thresholds", () => {
+    expect(parsePriceFilter("laptops under ₹70000")).toEqual({ inrUnsupported: true });
+    expect(parsePriceFilter("laptops below 70000 inr")).toEqual({ inrUnsupported: true });
   });
 
   it("parses rating above as strict gt", () => {

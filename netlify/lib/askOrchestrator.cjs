@@ -105,7 +105,6 @@ function isProductIntent(intent) {
     intent === INTENTS.PRODUCT_SEARCH
     || intent === INTENTS.PRODUCT_RECOMMENDATION
     || intent === INTENTS.PRODUCT_SPECIFIC
-    || intent === INTENTS.UNKNOWN
   );
 }
 
@@ -232,6 +231,64 @@ async function handleMixedRequest(question, options, requestStartedAt) {
       answerSource: "provider-error-fallback",
       message: "Mixed AI generation failed.",
     };
+  }
+}
+
+async function handleGeneralConversationRequest(question, options, requestStartedAt) {
+  const llmClient = options.llmClient || createLlmClient({ env: options.env || process.env });
+
+  if (!llmClient.isConfigured()) {
+    emitDiagnostic(options, {
+      stage: "llm_config",
+      classification: "orchestrator_error",
+      durationMs: Date.now() - requestStartedAt,
+      matchCount: 0,
+      answerSource: "configuration-fallback",
+      intent: INTENTS.UNKNOWN,
+    });
+    return buildNonRetrievalSuccessResponse(question, {
+      answer:
+        "I can chat about general topics when the AI provider is configured. "
+        + "For product questions, try asking about items in the catalog.",
+      answerSource: "configuration-fallback",
+      message: "General conversation is not configured.",
+    });
+  }
+
+  const llmStartedAt = Date.now();
+  try {
+    const generated = await llmClient.generateGeneralConversationAnswer({ question });
+    emitDiagnostic(options, {
+      stage: "complete",
+      classification: null,
+      durationMs: Date.now() - requestStartedAt,
+      llmDurationMs: Date.now() - llmStartedAt,
+      matchCount: 0,
+      answerSource: "general-conversation",
+      intent: INTENTS.UNKNOWN,
+    });
+    return buildNonRetrievalSuccessResponse(question, {
+      answer: generated,
+      answerSource: "general-conversation",
+      message: "Generated general conversation response.",
+    });
+  } catch (err) {
+    emitDiagnostic(options, {
+      stage: "llm_generate",
+      classification: err.classification || "orchestrator_error",
+      providerErrorCode: err.code,
+      providerHttpStatus: err.status,
+      durationMs: Date.now() - requestStartedAt,
+      llmDurationMs: Date.now() - llmStartedAt,
+      matchCount: 0,
+      answerSource: "provider-error-fallback",
+      intent: INTENTS.UNKNOWN,
+    });
+    return buildNonRetrievalSuccessResponse(question, {
+      answer: "I could not reply right now. Please try again in a moment.",
+      answerSource: "provider-error-fallback",
+      message: "General conversation AI generation failed.",
+    });
   }
 }
 
@@ -441,11 +498,15 @@ async function handleAskRequest(question, options = {}) {
     return handleMixedRequest(question, options, requestStartedAt);
   }
 
+  if (intent === INTENTS.UNKNOWN) {
+    return handleGeneralConversationRequest(question, options, requestStartedAt);
+  }
+
   if (isProductIntent(intent)) {
     return handleProductCatalogRequest(question, options, requestStartedAt);
   }
 
-  return handleProductCatalogRequest(question, options, requestStartedAt);
+  return handleGeneralConversationRequest(question, options, requestStartedAt);
 }
 
 module.exports = {

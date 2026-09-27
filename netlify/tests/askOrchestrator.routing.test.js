@@ -12,12 +12,14 @@ function createMockLlm({
   mixedAnswer =
     "GENERAL EXPLANATION\nLaptops are portable computers you can use on the go.\n\n"
     + "CATALOG RESULTS\nMatching products from this store are listed in the retrieved matches below.",
+  conversationAnswer = "Mocked conversation reply.",
   shouldFail = false,
   failMixedOnly = false,
 } = {}) {
   const productCalls = [];
   const generalCalls = [];
   const mixedCalls = [];
+  const conversationCalls = [];
 
   const maybeFail = (failScope) => {
     if (shouldFail || (failMixedOnly && failScope === "mixed")) {
@@ -31,6 +33,7 @@ function createMockLlm({
     productCalls,
     generalCalls,
     mixedCalls,
+    conversationCalls,
     client: {
       isConfigured: () => configured,
       getConfig: () => ({ provider: "groq", model: "test-model", hasApiKey: configured }),
@@ -48,6 +51,11 @@ function createMockLlm({
         mixedCalls.push(payload);
         maybeFail("mixed");
         return mixedAnswer;
+      },
+      generateGeneralConversationAnswer: async (payload) => {
+        conversationCalls.push(payload);
+        maybeFail("conversation");
+        return conversationAnswer;
       },
     },
   };
@@ -125,6 +133,23 @@ async function run() {
     assert.strictEqual(result.answerSource, "llm");
     assert.strictEqual(mock.productCalls.length, 1);
     assert.strictEqual(mock.generalCalls.length, 0);
+  });
+
+  await check("Tell me a joke uses UNKNOWN general-conversation path", async () => {
+    let retrieveCalled = false;
+    const mock = createMockLlm({ conversationAnswer: "A small tech joke." });
+    const result = await handleAskRequest("Tell me a joke", {
+      llmClient: mock.client,
+      retrieveProductsFn: () => {
+        retrieveCalled = true;
+        return { query: "", normalizedQuery: "", matches: [], message: "", unsupportedTerms: [] };
+      },
+    });
+    assert.strictEqual(retrieveCalled, false);
+    assert.strictEqual(result.answerSource, "general-conversation");
+    assert.strictEqual(result.matches.length, 0);
+    assert.strictEqual(mock.conversationCalls.length, 1);
+    assert.strictEqual(mock.productCalls.length, 0);
   });
 
   await check("Show me laptops keeps PRODUCT_SEARCH retrieval path", async () => {

@@ -34,15 +34,18 @@ function createMockLlm({
   answer = "Mocked catalog answer.",
   generalAnswer = "Mocked general knowledge answer.",
   mixedAnswer = "GENERAL EXPLANATION\nBrief concept.\n\nCATALOG RESULTS\nCatalog summary.",
+  conversationAnswer = "Mocked general conversation answer.",
   shouldFail = false,
 } = {}) {
   const calls = [];
   const generalCalls = [];
   const mixedCalls = [];
+  const conversationCalls = [];
   return {
     calls,
     generalCalls,
     mixedCalls,
+    conversationCalls,
     client: {
       isConfigured: () => configured,
       getConfig: () => ({ provider: "groq", model: "test-model", hasApiKey: configured }),
@@ -87,6 +90,20 @@ function createMockLlm({
           throw error;
         }
         return mixedAnswer;
+      },
+      generateGeneralConversationAnswer: async (payload) => {
+        conversationCalls.push(payload);
+        if (shouldFail) {
+          const error = new Error("Provider request failed.");
+          error.code = "LLM_PROVIDER_ERROR";
+          throw error;
+        }
+        if (conversationAnswer == null || conversationAnswer === "") {
+          const error = new Error("Provider returned an empty answer.");
+          error.code = "LLM_EMPTY_RESPONSE";
+          throw error;
+        }
+        return conversationAnswer;
       },
     },
   };
@@ -173,8 +190,43 @@ async function run() {
     __resetLlmClientForTests();
   });
 
+  await check("Tell me a joke uses general-conversation without retrieval", async () => {
+    const mock = createMockLlm({ conversationAnswer: "Why did the laptop go to sleep? It needed to recharge." });
+    __setLlmClientForTests(mock.client);
+    const res = await invoke({ question: "Tell me a joke" });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.answerSource, "general-conversation");
+    assert.strictEqual(res.body.matches.length, 0);
+    assert.strictEqual(mock.conversationCalls.length, 1);
+    assert.strictEqual(mock.calls.length, 0);
+    __resetLlmClientForTests();
+  });
+
+  await check("my name is Saurabh uses general-conversation", async () => {
+    const mock = createMockLlm({ conversationAnswer: "Nice to meet you, Saurabh!" });
+    __setLlmClientForTests(mock.client);
+    const res = await invoke({ question: "my name is Saurabh" });
+    assert.strictEqual(res.body.answerSource, "general-conversation");
+    assert.strictEqual(res.body.matches.length, 0);
+    assert.strictEqual(mock.conversationCalls.length, 1);
+    __resetLlmClientForTests();
+  });
+
+  await check("weather question uses general-conversation not catalog", async () => {
+    const mock = createMockLlm({
+      conversationAnswer: "Live weather information is not available in this assistant.",
+    });
+    __setLlmClientForTests(mock.client);
+    const res = await invoke({ question: "What is the weather today?" });
+    assert.strictEqual(res.body.answerSource, "general-conversation");
+    assert.strictEqual(res.body.matches.length, 0);
+    assert.strictEqual(mock.conversationCalls.length, 1);
+    assert.strictEqual(mock.calls.length, 0);
+    __resetLlmClientForTests();
+  });
+
   await check("in stock question retrieval matches", async () => {
-    const res = await invoke({ question: "Which products are available?" }, "POST");
+    const res = await invoke({ question: "Which products are in stock?" }, "POST");
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.success, true);
     assert.ok(res.body.matches.length > 0);
@@ -254,11 +306,15 @@ async function run() {
     assert.ok(res.body.answer.includes("catalog"));
   });
 
-  await check("no strong match retrieval fallback", async () => {
+  await check("nonsense unknown query uses general-conversation not catalog", async () => {
+    const mock = createMockLlm({ conversationAnswer: "I'm not sure how to help with that." });
+    __setLlmClientForTests(mock.client);
     const res = await invoke({ question: "xyzzy plugh" });
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.matches.length, 0);
-    assert.strictEqual(res.body.answerSource, "retrieval-fallback");
+    assert.strictEqual(res.body.answerSource, "general-conversation");
+    assert.strictEqual(mock.conversationCalls.length, 1);
+    __resetLlmClientForTests();
   });
 
   await check("missing API key uses configuration fallback", async () => {

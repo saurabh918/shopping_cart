@@ -8,6 +8,9 @@ const {
   parsePriceFilter,
   parseStructuredQuery,
   hasStructuredFilters,
+  isInrPriceFilter,
+  detectUnsupportedCatalogConstraints,
+  productMatchesProductLine,
   productMatchesStructured,
   sortStructuredMatches,
   structuredMatchReasons,
@@ -20,8 +23,9 @@ const STOP_WORDS = new Set([
   "show", "me", "tell", "give", "list", "find", "get",
   "do", "does", "did", "have", "has", "had",
   "with", "for", "of", "and", "or", "to", "in", "on", "at", "by", "from",
-  "this", "that", "these", "those", "my", "your", "our",
+  "this", "that", "these", "those", "my", "your", "our", "you",
   "product", "products", "item", "items",
+  "can", "delivered",
 ]);
 
 const INTENT_WORDS = new Set([
@@ -31,10 +35,20 @@ const INTENT_WORDS = new Set([
   "fast", "quick", "express",
   "rating", "ratings", "star", "stars", "rated", "high", "best", "low",
   "category", "mobile", "phone", "laptop", "notebook",
+  "macbook", "macbooks", "iphone", "iphones",
 ]);
 
 const DEFAULT_MIN_SCORE = 4;
 const DEFAULT_LIMIT = 3;
+const BROAD_BROWSE_LIMIT = 10;
+
+const PRODUCT_LINE_STEMS = ["macbook", "iphone"];
+
+function normalizeProductLineToken(token) {
+  if (token === "macbooks") return "macbook";
+  if (token === "iphones") return "iphone";
+  return token;
+}
 
 function normalizeQuery(query) {
   if (query == null || typeof query !== "string") {
@@ -50,6 +64,7 @@ function normalizeQuery(query) {
   const tokens = normalized
     .split(" ")
     .map((token) => token.replace(/[^a-z0-9$]/g, ""))
+    .map((token) => normalizeProductLineToken(token))
     .filter((token) => token.length >= 2 && !STOP_WORDS.has(token));
 
   return { original, normalized, tokens };
@@ -70,6 +85,49 @@ function buildCatalogTokenSet(records) {
 
 function findUnsupportedTerms(tokens, catalogTokens) {
   return tokens.filter((token) => !catalogTokens.has(token));
+}
+
+function resolveRetrievalLimit(structured, options) {
+  if (options.limit != null) return options.limit;
+
+  const broadBrowse =
+    structured.productLine
+    || (
+      structured.category
+      && !structured.priceFilter
+      && !structured.ratingFilter
+      && structured.fastDelivery !== true
+    );
+
+  if (broadBrowse) return BROAD_BROWSE_LIMIT;
+  if (structured.priceFilter && !structured.priceFilter.inrUnsupported) return BROAD_BROWSE_LIMIT;
+  return DEFAULT_LIMIT;
+}
+
+function buildInrPriceMismatchResponse(queryInfo) {
+  const { original, normalized } = queryInfo;
+  return {
+    query: original,
+    normalizedQuery: normalized,
+    matches: [],
+    message:
+      "The catalog uses USD-style prices only. INR/₹ price filtering is not supported, "
+      + "and amounts in rupees cannot be compared to catalog prices.",
+    unsupportedTerms: ["INR price filter"],
+  };
+}
+
+function buildUnsupportedConstraintsResponse(queryInfo, constraints) {
+  const { original, normalized } = queryInfo;
+  return {
+    query: original,
+    normalizedQuery: normalized,
+    matches: [],
+    message:
+      `The catalog does not contain data to filter by: ${constraints.join(", ")}. `
+      + "Available catalog fields are name, price, stock, delivery, and rating only.",
+    unsupportedTerms: constraints,
+  };
 }
 
 function queryAsksInStock(normalized) {
@@ -93,6 +151,22 @@ function queryAsksPrice(normalized) {
 
 function queryAsksDelivery(normalized) {
   return /\bdelivery\b/.test(normalized) || /\bshipping\b/.test(normalized);
+}
+
+function queryMentionsProductLine(normalized) {
+  return PRODUCT_LINE_STEMS.some((stem) => normalized.includes(stem));
+}
+
+function productLineFamilyMatch(product, normalized) {
+  for (const stem of PRODUCT_LINE_STEMS) {
+    const plural = `${stem}s`;
+    if (normalized.includes(plural) || normalized.includes(stem)) {
+      if (productMatchesProductLine(product, stem)) {
+        return { matched: true, stem };
+      }
+    }
+  }
+  return { matched: false, stem: null };
 }
 
 function retrieveByStructuredFilters(records, structured, queryInfo, limit) {
@@ -131,6 +205,9 @@ function nameMatchesQuery(product, normalized, tokens) {
   const nameLower = product.name.toLowerCase();
   if (normalized.includes(nameLower)) return true;
 
+  const family = productLineFamilyMatch(product, normalized);
+  if (family.matched) return true;
+
   const nameParts = nameLower.split(" ").filter((part) => part.length >= 2);
   if (nameParts.length === 0) return false;
 
@@ -140,6 +217,13 @@ function nameMatchesQuery(product, normalized, tokens) {
   if (matchedParts.length === nameParts.length) return true;
 
   if (matchedParts.length > 0 && tokens.includes(nameParts[0])) return true;
+
+  const firstStem = nameParts[0];
+  if (tokens.includes(firstStem) || normalized.includes(firstStem)) {
+    if (nameLower.startsWith(`${firstStem} `) || nameLower === firstStem) {
+      return true;
+    }
+  }
 
   return false;
 }
@@ -163,6 +247,13 @@ function scoreProduct(product, queryInfo) {
       matchedTerms.push(token);
     }
   });
+
+  const family = productLineFamilyMatch(product, normalized);
+  if (family.matched) {
+    score += 10;
+    reasons.push(`Product name matches ${family.stem} product line`);
+    matchedTerms.push(family.stem);
+  }
 
   if (nameMatchesQuery(product, normalized, tokens)) {
     score += 8;
@@ -223,7 +314,6 @@ function scoreProduct(product, queryInfo) {
 
 function retrieveProducts(query, options = {}) {
   const minScore = options.minScore ?? DEFAULT_MIN_SCORE;
-  const limit = options.limit ?? DEFAULT_LIMIT;
   const records = options.records ?? getProductKnowledgeBase();
 
   const queryInfo = normalizeQuery(query);
@@ -240,8 +330,35 @@ function retrieveProducts(query, options = {}) {
   }
 
   const structured = parseStructuredQuery(normalized);
+
+  if (isInrPriceFilter(structured)) {
+    return buildInrPriceMismatchResponse(queryInfo);
+  }
+
+  const catalogConstraints = detectUnsupportedCatalogConstraints(normalized);
+  if (catalogConstraints.length > 0) {
+    const categoryOrLineIntent =
+      structured.category
+      || structured.productLine
+      || /\b(laptops?|notebooks?|macbooks?|iphones?)\b/.test(normalized);
+    if (categoryOrLineIntent) {
+      return buildUnsupportedConstraintsResponse(queryInfo, catalogConstraints);
+    }
+  }
+
+  const limit = resolveRetrievalLimit(structured, options);
+
   if (hasStructuredFilters(structured)) {
     return retrieveByStructuredFilters(records, structured, queryInfo, limit);
+  }
+
+  if (structured.productLine) {
+    return retrieveByStructuredFilters(
+      records,
+      { ...structured, category: structured.category || null },
+      queryInfo,
+      limit,
+    );
   }
 
   const catalogTokens = buildCatalogTokenSet(records);
@@ -252,10 +369,14 @@ function retrieveProducts(query, options = {}) {
     return { product, score, reasons, matchedTerms };
   });
 
+  const keywordLimit = options.limit ?? (
+    queryMentionsProductLine(normalized) ? BROAD_BROWSE_LIMIT : DEFAULT_LIMIT
+  );
+
   let matches = scored
     .filter((entry) => entry.score >= minScore)
     .sort((a, b) => b.score - a.score || a.product.id - b.product.id)
-    .slice(0, limit)
+    .slice(0, keywordLimit)
     .map((entry) => ({
       product: entry.product,
       score: entry.score,
